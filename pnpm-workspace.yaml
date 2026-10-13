@@ -1,0 +1,8 @@
+packages:
+  - site
+
+# pnpm 12 requires build scripts to be explicitly allowed or denied.
+# These transitive dependencies ship postinstall scripts we don't need.
+allowBuilds:
+  '@google/genai': false
+  protobufjs: false

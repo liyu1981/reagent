@@ -1,0 +1,82 @@
+{
+  "name": "@liyu1981/reagent",
+  "version": "0.1.0",
+  "description": "Composable React AI agent: an in-app chat, conversation tree and settings, built on pi-agent-core / pi-ai.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Yu Li",
+  "homepage": "https://liyu1981.github.io/reagent/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liyu1981/reagent.git"
+  },
+  "bugs": {
+    "url": "https://github.com/liyu1981/reagent/issues"
+  },
+  "keywords": [
+    "react",
+    "ai",
+    "agent",
+    "chat",
+    "llm",
+    "pi-ai",
+    "pi-agent-core",
+    "openai",
+    "anthropic",
+    "ollama"
+  ],
+  "sideEffects": [
+    "**/*.css"
+  ],
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./styles.css": "./styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "styles.css",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@12.11.2",
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "format": "biome format --write src",
+    "site:dev": "pnpm --filter @liyu1981/reagent-site dev",
+    "site:build": "pnpm build && pnpm --filter @liyu1981/reagent-site build",
+    "prepublishOnly": "pnpm build"
+  },
+  "peerDependencies": {
+    "@earendil-works/pi-agent-core": "0.84.2",
+    "@earendil-works/pi-ai": "0.84.2",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.32.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.56.0",
+    "radix-ui": "^1.8.1",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^7.0.2"
+  }
+}

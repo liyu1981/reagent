@@ -1,0 +1,74 @@
+/*
+ * Site styles.
+ *
+ * ReAgent ships Tailwind v4 utilities, so the host imports Tailwind first, then
+ * the package styles, then points `@source` at the built package so Tailwind
+ * emits the classes ReAgent uses.
+ */
+@import "tailwindcss";
+@import "@liyu1981/reagent/styles.css";
+
+@source "../../dist";
+@source "../../node_modules/@liyu1981/reagent/dist";
+
+@plugin "@tailwindcss/typography";
+
+/* Dark mode is driven by a `.dark` class (ReAgent's fallback tokens use it too). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Theme the whole site — including the embedded agent — with an indigo accent. */
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.21 0.03 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.03 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.03 264);
+  --primary: oklch(0.51 0.23 277);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0.01 264);
+  --secondary-foreground: oklch(0.3 0.04 266);
+  --muted: oklch(0.97 0.01 264);
+  --muted-foreground: oklch(0.55 0.03 264);
+  --accent: oklch(0.95 0.03 277);
+  --accent-foreground: oklch(0.35 0.12 277);
+  --destructive: oklch(0.58 0.24 27);
+  --border: oklch(0.92 0.01 264);
+  --input: oklch(0.88 0.01 264);
+  --ring: oklch(0.58 0.18 277);
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: oklch(0.17 0.02 265);
+  --foreground: oklch(0.97 0.01 264);
+  --card: oklch(0.21 0.025 265);
+  --card-foreground: oklch(0.97 0.01 264);
+  --popover: oklch(0.21 0.025 265);
+  --popover-foreground: oklch(0.97 0.01 264);
+  --primary: oklch(0.72 0.16 280);
+  --primary-foreground: oklch(0.17 0.02 265);
+  --secondary: oklch(0.27 0.03 265);
+  --secondary-foreground: oklch(0.97 0.01 264);
+  --muted: oklch(0.27 0.03 265);
+  --muted-foreground: oklch(0.72 0.02 264);
+  --accent: oklch(0.3 0.05 280);
+  --accent-foreground: oklch(0.9 0.05 280);
+  --destructive: oklch(0.7 0.19 22);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.65 0.15 280);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+/* Utility used by the hero code block. */
+.code-scroll {
+  scrollbar-width: thin;
+}

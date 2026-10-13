@@ -1,0 +1,113 @@
+import components from '../../docs/components.md?raw';
+import headless from '../../docs/headless.md?raw';
+import hostIntegrations from '../../docs/host-integrations.md?raw';
+import installation from '../../docs/installation.md?raw';
+import introduction from '../../docs/introduction.md?raw';
+import models from '../../docs/models.md?raw';
+import quickStart from '../../docs/quick-start.md?raw';
+import sessions from '../../docs/sessions.md?raw';
+import styling from '../../docs/styling.md?raw';
+import theming from '../../docs/theming.md?raw';
+import toolsAndSkills from '../../docs/tools-and-skills.md?raw';
+
+export interface DocEntry {
+  slug: string;
+  title: string;
+  group: string;
+  summary: string;
+  content: string;
+}
+
+export const DOCS: DocEntry[] = [
+  {
+    slug: 'introduction',
+    title: 'Introduction',
+    group: 'Getting started',
+    summary: 'What ReAgent is and why you would use it.',
+    content: introduction,
+  },
+  {
+    slug: 'installation',
+    title: 'Installation',
+    group: 'Getting started',
+    summary: 'Install the package and wire up Tailwind v4.',
+    content: installation,
+  },
+  {
+    slug: 'quick-start',
+    title: 'Quick start',
+    group: 'Getting started',
+    summary: 'Render the agent and configure a model.',
+    content: quickStart,
+  },
+  {
+    slug: 'styling',
+    title: 'Styling',
+    group: 'Guides',
+    summary: 'Tailwind setup, tokens and surfaces.',
+    content: styling,
+  },
+  {
+    slug: 'theming',
+    title: 'Theming',
+    group: 'Guides',
+    summary: 'Dark mode, the theme prop, copy overrides.',
+    content: theming,
+  },
+  {
+    slug: 'host-integrations',
+    title: 'Host integrations',
+    group: 'Guides',
+    summary: 'Markdown, tools, uploads and the editor bridge.',
+    content: hostIntegrations,
+  },
+  {
+    slug: 'models',
+    title: 'Models & providers',
+    group: 'Guides',
+    summary: 'Credentials, verification and model selection.',
+    content: models,
+  },
+  {
+    slug: 'tools-and-skills',
+    title: 'Tools & skills',
+    group: 'Guides',
+    summary: 'Built-in tools, descriptors, skills and MCP.',
+    content: toolsAndSkills,
+  },
+  {
+    slug: 'sessions',
+    title: 'Sessions & persistence',
+    group: 'Guides',
+    summary: 'The conversation tree and IndexedDB storage.',
+    content: sessions,
+  },
+  {
+    slug: 'components',
+    title: 'Components & props',
+    group: 'Reference',
+    summary: 'Every export and the ReAgent props table.',
+    content: components,
+  },
+  {
+    slug: 'headless',
+    title: 'Headless usage',
+    group: 'Reference',
+    summary: 'Build a custom UI on the provider and hooks.',
+    content: headless,
+  },
+];
+
+export const DOC_GROUPS = ['Getting started', 'Guides', 'Reference'] as const;
+
+export function getDoc(slug: string | undefined): DocEntry {
+  return DOCS.find(doc => doc.slug === slug) ?? DOCS[0];
+}
+
+export function docNeighbours(slug: string): { prev: DocEntry | null; next: DocEntry | null } {
+  const index = DOCS.findIndex(doc => doc.slug === slug);
+  return {
+    prev: index > 0 ? DOCS[index - 1] : null,
+    next: index >= 0 && index < DOCS.length - 1 ? DOCS[index + 1] : null,
+  };
+}
