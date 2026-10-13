@@ -1,6 +1,6 @@
 {
   "name": "@liyu1981/reagent",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Composable React AI agent: an in-app chat, conversation tree and settings, built on pi-agent-core / pi-ai.",
   "type": "module",
   "license": "MIT",
