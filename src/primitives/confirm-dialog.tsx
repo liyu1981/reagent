@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { cn } from '../lib/utils';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +11,6 @@ import {
   AlertDialogTitle,
 } from './alert-dialog';
 import { buttonVariants } from './button';
-import { cn } from '../lib/utils';
 
 interface ConfirmDialogProps {
   open: boolean;

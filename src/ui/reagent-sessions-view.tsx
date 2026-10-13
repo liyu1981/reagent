@@ -9,13 +9,13 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
-
 import type { AgentSessionNode } from '../core/types';
-
-import { ConfirmDialog } from '../primitives/confirm-dialog';
+import { cn } from '../lib/utils';
 import { Badge } from '../primitives/badge';
 import { Button } from '../primitives/button';
+import { ConfirmDialog } from '../primitives/confirm-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,9 +23,6 @@ import {
   DropdownMenuTrigger,
 } from '../primitives/dropdown-menu';
 import { Input } from '../primitives/input';
-import { cn } from '../lib/utils';
-
-import { useReAgent } from '../core/hooks';
 
 function relativeTime(timestamp: number): string {
   return new Date(timestamp).toLocaleString(undefined, {

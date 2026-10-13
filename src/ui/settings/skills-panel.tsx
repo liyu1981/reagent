@@ -1,11 +1,13 @@
 import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
-import { useTranslation } from '../../core/i18n';
-import { useToast } from '../../core/i18n';
-
-import { ConfirmDialog } from '../../primitives/confirm-dialog';
+import { newSkillId } from '../../core/config';
+import { useReAgentConfig } from '../../core/hooks';
+import { useToast, useTranslation } from '../../core/i18n';
+import { BUILTIN_SKILLS } from '../../core/skill-registry';
+import type { AgentSkillConfig } from '../../core/types';
 import { Badge } from '../../primitives/badge';
 import { Button } from '../../primitives/button';
+import { ConfirmDialog } from '../../primitives/confirm-dialog';
 import {
   Dialog,
   DialogContent,
@@ -16,11 +18,6 @@ import {
 import { Input } from '../../primitives/input';
 import { Label } from '../../primitives/label';
 import { Switch } from '../../primitives/switch';
-import { newSkillId } from '../../core/config';
-import { BUILTIN_SKILLS } from '../../core/skill-registry';
-import type { AgentSkillConfig } from '../../core/types';
-
-import { useReAgentConfig } from '../../core/hooks';
 
 interface SkillDraft {
   id: string | null;

@@ -4,11 +4,10 @@ import {
   type AgentTool,
   type ThinkingLevel,
 } from '@earendil-works/pi-agent-core';
-
-import { getModel, getModels } from './models';
-import type { AgentToolDescriptor } from './types';
-import { buildAgentTools } from './tools';
 import type { EditorMutationBridge } from './editor-mutations';
+import { getModel, getModels } from './models';
+import { buildAgentTools } from './tools';
+import type { AgentToolDescriptor } from './types';
 
 export interface AgentBuildOptions {
   providerId: string;

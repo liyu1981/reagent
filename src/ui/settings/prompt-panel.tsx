@@ -1,11 +1,8 @@
 import { RotateCcw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { useTranslation } from '../../core/i18n';
-import { useToast } from '../../core/i18n';
-
-import { Button } from '../../primitives/button';
-
 import { useReAgentConfig } from '../../core/hooks';
+import { useToast, useTranslation } from '../../core/i18n';
+import { Button } from '../../primitives/button';
 
 export function ReAgentPromptPanel() {
   const { config, update } = useReAgentConfig();

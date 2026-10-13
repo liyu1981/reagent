@@ -1,9 +1,7 @@
-import { useTranslation } from '../../core/i18n';
-
-import { Switch } from '../../primitives/switch';
-import type { AgentToolGroup } from '../../core/types';
-
 import { useReAgent, useReAgentConfig } from '../../core/hooks';
+import { useTranslation } from '../../core/i18n';
+import type { AgentToolGroup } from '../../core/types';
+import { Switch } from '../../primitives/switch';
 
 const GROUPS: AgentToolGroup[] = ['content', 'editor', 'web', 'skills', 'mcp'];
 

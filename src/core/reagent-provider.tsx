@@ -1,6 +1,7 @@
-import { Agent } from '@earendil-works/pi-agent-core';
 import type { AgentMessage, AgentTool, ThinkingLevel } from '@earendil-works/pi-agent-core';
+import { Agent } from '@earendil-works/pi-agent-core';
 import type { Api, ImageContent, Model } from '@earendil-works/pi-ai';
+import type { ReactNode } from 'react';
 import {
   createContext,
   useCallback,
@@ -10,13 +11,18 @@ import {
   useState,
   useSyncExternalStore,
 } from 'react';
-import type { ReactNode } from 'react';
-import { blobToBase64, makeVisionImage } from './attachments';
-
 import { buildAgent } from './agent';
+import { blobToBase64, makeVisionImage } from './attachments';
 import { getAgentConfig, subscribeAgentConfig, updateAgentConfig } from './config';
 import type { EditorMutationBridge } from './editor-mutations';
 import { EXA_SERVER_ID, mcpManager, setExaApiKey, syncMcpServersWithTimeout } from './mcp';
+import {
+  makeTranslator,
+  type ReAgentMarkdown,
+  type ReAgentNotify,
+  type ReAgentTheme,
+  type ReAgentTranslate,
+} from './messages';
 import {
   getModel,
   getModelsVersion,
@@ -45,13 +51,6 @@ import type {
   AgentToolDescriptor,
   ToolChip,
 } from './types';
-import {
-  makeTranslator,
-  type ReAgentMarkdown,
-  type ReAgentNotify,
-  type ReAgentTheme,
-  type ReAgentTranslate,
-} from './messages';
 
 export interface ModelOption {
   provider: string;

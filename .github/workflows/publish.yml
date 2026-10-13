@@ -1,0 +1,56 @@
+name: Publish to npm
+
+# Publishing a GitHub Release publishes the matching version to npm.
+# The tag must be `v<package.json version>`.
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+# `id-token: write` lets npm authenticate via OIDC (trusted publishing) and
+# attach provenance — no long-lived npm token is stored in the repo.
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish @liyu1981/reagent
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify the release tag matches package.json
+        if: github.event_name == 'release'
+        run: |
+          tag="${{ github.event.release.tag_name }}"
+          version="v$(node -p "require('./package.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "Release tag '$tag' does not match package version '$version'." >&2
+            exit 1
+          fi
+          echo "Publishing $version"
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Build
+        run: pnpm build
+
+      - name: Publish
+        run: npm publish --access public --provenance

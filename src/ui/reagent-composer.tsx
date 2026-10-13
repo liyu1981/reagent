@@ -11,10 +11,11 @@ import {
   Square,
   X,
 } from 'lucide-react';
-import { useEffect, useRef } from 'react';
 import type { ComponentProps, KeyboardEvent } from 'react';
+import { useEffect, useRef } from 'react';
+import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
-
+import { cn } from '../lib/utils';
 import { Badge } from '../primitives/badge';
 import { Button } from '../primitives/button';
 import {
@@ -26,9 +27,6 @@ import {
   DropdownMenuTrigger,
 } from '../primitives/dropdown-menu';
 import { Popover, PopoverContent, PopoverTrigger } from '../primitives/popover';
-import { cn } from '../lib/utils';
-
-import { useReAgent } from '../core/hooks';
 
 const THINKING_LEVELS: ThinkingLevel[] = ['off', 'low', 'medium', 'high'];
 const SELECTION_PREVIEW_MAX = 400;

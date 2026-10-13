@@ -1,12 +1,10 @@
 import { Bot, GitBranch, Plus, Settings, X } from 'lucide-react';
 import type { ComponentProps } from 'react';
-
+import { useReAgent } from '../core/hooks';
+import { useTranslation } from '../core/i18n';
+import { cn } from '../lib/utils';
 import { Button } from '../primitives/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip';
-import { cn } from '../lib/utils';
-import { useTranslation } from '../core/i18n';
-
-import { useReAgent } from '../core/hooks';
 
 function ReAgentHeader({ className, children, ...props }: ComponentProps<'header'>) {
   return (

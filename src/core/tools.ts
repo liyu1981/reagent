@@ -1,9 +1,8 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
-import { Type, type TSchema } from '@earendil-works/pi-ai';
-
-import type { AgentToolBuildContext, AgentToolDescriptor, AgentToolGroup } from './types';
-import { buildUseSkillTool, enabledSkillDefinitions, USE_SKILL_TOOL_ID } from './skill-registry';
+import { type TSchema, Type } from '@earendil-works/pi-ai';
 import type { EditorMutationBridge } from './editor-mutations';
+import { buildUseSkillTool, enabledSkillDefinitions, USE_SKILL_TOOL_ID } from './skill-registry';
+import type { AgentToolBuildContext, AgentToolDescriptor, AgentToolGroup } from './types';
 
 function textBlocks(...texts: string[]) {
   return {

@@ -1,13 +1,7 @@
 import { Check, Loader2, RefreshCw, Server } from 'lucide-react';
 import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from '../../core/i18n';
-import { useToast } from '../../core/i18n';
-
-import { Badge } from '../../primitives/badge';
-import { Button } from '../../primitives/button';
-import { Input } from '../../primitives/input';
-import { Label } from '../../primitives/label';
-import { Switch } from '../../primitives/switch';
+import { useReAgentConfig } from '../../core/hooks';
+import { useToast, useTranslation } from '../../core/i18n';
 import {
   EXA_SERVER_ID,
   getExaApiKey,
@@ -18,8 +12,11 @@ import {
   syncMcpServersWithTimeout,
 } from '../../core/mcp';
 import type { McpServerConfig } from '../../core/types';
-
-import { useReAgentConfig } from '../../core/hooks';
+import { Badge } from '../../primitives/badge';
+import { Button } from '../../primitives/button';
+import { Input } from '../../primitives/input';
+import { Label } from '../../primitives/label';
+import { Switch } from '../../primitives/switch';
 
 export function ReAgentMcpPanel() {
   const { config, update } = useReAgentConfig();

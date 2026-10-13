@@ -1,10 +1,8 @@
 import { ArrowLeft } from 'lucide-react';
+import { useReAgent } from '../../core/hooks';
 import { useTranslation } from '../../core/i18n';
-
 import { Button } from '../../primitives/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../primitives/tabs';
-
-import { useReAgent } from '../../core/hooks';
 import { ReAgentMcpPanel } from './mcp-panel';
 import { ReAgentModelPanel } from './model-panel';
 import { ReAgentPromptPanel } from './prompt-panel';

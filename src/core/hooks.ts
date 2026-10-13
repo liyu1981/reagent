@@ -1,9 +1,8 @@
 import { useContext, useSyncExternalStore } from 'react';
 
 import { getAgentConfig, subscribeAgentConfig, updateAgentConfig } from './config';
-import type { AgentSession, AgentSessionNode } from './types';
-
 import { ReAgentContext, type ReAgentContextValue } from './reagent-provider';
+import type { AgentSession, AgentSessionNode } from './types';
 
 export function useReAgent(): ReAgentContextValue {
   const context = useContext(ReAgentContext);

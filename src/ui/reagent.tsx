@@ -1,8 +1,19 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
 import { cva } from 'class-variance-authority';
 import { useState } from 'react';
+import type { EditorMutationBridge } from '../core/editor-mutations';
+import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
-
+import type {
+  ReAgentMarkdown,
+  ReAgentMessages,
+  ReAgentNotify,
+  ReAgentTheme,
+  ReAgentTranslate,
+} from '../core/messages';
+import { ReAgentProvider } from '../core/reagent-provider';
+import type { AgentDraft, AgentToolDescriptor } from '../core/types';
+import { cn } from '../lib/utils';
 import { Button } from '../primitives/button';
 import {
   Dialog,
@@ -13,26 +24,6 @@ import {
   DialogTitle,
 } from '../primitives/dialog';
 import { Input } from '../primitives/input';
-import type { EditorMutationBridge } from '../core/editor-mutations';
-import type { AgentDraft, AgentToolDescriptor } from '../core/types';
-import type {
-  ReAgentMarkdown,
-  ReAgentMessages,
-  ReAgentNotify,
-  ReAgentTheme,
-  ReAgentTranslate,
-} from '../core/messages';
-import { cn } from '../lib/utils';
-
-import { ReAgentProvider } from '../core/reagent-provider';
-import { useReAgent } from '../core/hooks';
-import {
-  ReAgentCloseButton,
-  ReAgentHeader,
-  ReAgentNewSessionButton,
-  ReAgentSessionTreeTrigger,
-  ReAgentSettingsTrigger,
-} from './reagent-header';
 import {
   ReAgentComposer,
   ReAgentComposerAttach,
@@ -45,6 +36,13 @@ import {
   ReAgentSendButton,
   ReAgentThinkingPicker,
 } from './reagent-composer';
+import {
+  ReAgentCloseButton,
+  ReAgentHeader,
+  ReAgentNewSessionButton,
+  ReAgentSessionTreeTrigger,
+  ReAgentSettingsTrigger,
+} from './reagent-header';
 import { ReAgentMessageList } from './reagent-message-list';
 import { ReAgentRoot } from './reagent-root';
 import { ReAgentSessionsView } from './reagent-sessions-view';

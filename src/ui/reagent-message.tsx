@@ -1,11 +1,8 @@
-import { Bot, ChevronDown, GitBranch, Sparkles, X } from 'lucide-react';
-
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
-
-import { cn } from '../lib/utils';
-import { useMarkdown, useResolvedTheme, useTranslation } from '../core/i18n';
-
+import { Bot, ChevronDown, GitBranch, Sparkles, X } from 'lucide-react';
 import { useReAgent } from '../core/hooks';
+import { useMarkdown, useResolvedTheme, useTranslation } from '../core/i18n';
+import { cn } from '../lib/utils';
 
 function DefaultMarkdown({ content }: { content: string; theme?: 'light' | 'dark' }) {
   return <pre className="whitespace-pre-wrap font-sans text-sm">{content}</pre>;

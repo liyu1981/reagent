@@ -1,13 +1,10 @@
-import { Bot, Loader2 } from 'lucide-react';
-import { useEffect, useMemo, useRef } from 'react';
-import type { ComponentProps, ReactNode } from 'react';
-import { useTranslation } from '../core/i18n';
-
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
-
-import { cn } from '../lib/utils';
-
+import { Bot, Loader2 } from 'lucide-react';
+import type { ComponentProps, ReactNode } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useReAgent } from '../core/hooks';
+import { useTranslation } from '../core/i18n';
+import { cn } from '../lib/utils';
 import { ReAgentMessage, ReAgentToolChip } from './reagent-message';
 
 export interface ReAgentMessageListProps extends ComponentProps<'div'> {

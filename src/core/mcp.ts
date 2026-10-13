@@ -1,5 +1,5 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
-import { Type, type TSchema } from '@earendil-works/pi-ai';
+import { type TSchema, Type } from '@earendil-works/pi-ai';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { type Tool, ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
@@ -16,8 +16,8 @@ import { EXA_SERVER_ID, type McpServerConfig } from './types';
  * agent's tool set. Nothing is configured by default.
  */
 
-export { EXA_SERVER_ID };
 export type { McpServerConfig };
+export { EXA_SERVER_ID };
 
 const EXA_KEY_KEY = 'agent.mcp.exa.apiKey';
 const CONNECT_TIMEOUT_MS = 5000;

@@ -1,12 +1,6 @@
 import { Check, KeyRound, Loader2, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useTranslation } from '../../core/i18n';
-import { useToast } from '../../core/i18n';
-
-import { Badge } from '../../primitives/badge';
-import { Button } from '../../primitives/button';
-import { Input } from '../../primitives/input';
-import { Label } from '../../primitives/label';
+import { useToast, useTranslation } from '../../core/i18n';
 import {
   clearApiKey,
   getModels,
@@ -19,6 +13,10 @@ import {
   setOllamaBaseUrl,
   testConnection,
 } from '../../core/models';
+import { Badge } from '../../primitives/badge';
+import { Button } from '../../primitives/button';
+import { Input } from '../../primitives/input';
+import { Label } from '../../primitives/label';
 
 export function ReAgentModelPanel() {
   const { t } = useTranslation();

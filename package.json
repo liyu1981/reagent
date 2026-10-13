@@ -55,6 +55,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "format": "biome format --write src",
+    "format:check": "biome ci src",
     "site:dev": "pnpm --filter @liyu1981/reagent-site dev",
     "site:build": "pnpm build && pnpm --filter @liyu1981/reagent-site build",
     "prepublishOnly": "pnpm build"
