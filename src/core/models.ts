@@ -1,3 +1,5 @@
+import './polyfills';
+
 import {
   type Api,
   type Credential,
@@ -121,7 +123,8 @@ export function setOllamaBaseUrl(url: string): void {
   // UI once the user confirms the connection.
   void getModels()
     .refresh({ providers: [OLLAMA_PROVIDER_ID], force: true })
-    .then(notifyModels);
+    .then(notifyModels)
+    .catch(() => undefined);
 }
 
 function legacyVerified(): string[] {

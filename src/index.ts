@@ -1,3 +1,5 @@
+import './core/polyfills';
+
 export * from './core/agent';
 export * from './core/attachments';
 export * from './core/config';
