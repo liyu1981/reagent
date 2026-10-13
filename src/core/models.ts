@@ -11,11 +11,7 @@ import {
   type MutableModels,
 } from '@earendil-works/pi-ai';
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
-import { anthropicProvider } from '@earendil-works/pi-ai/providers/anthropic';
-import { deepseekProvider } from '@earendil-works/pi-ai/providers/deepseek';
-import { groqProvider } from '@earendil-works/pi-ai/providers/groq';
-import { openaiProvider } from '@earendil-works/pi-ai/providers/openai';
-import { openrouterProvider } from '@earendil-works/pi-ai/providers/openrouter';
+import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
 
 import { getAgentConfig, updateAgentConfig } from './config';
 import { DEFAULT_OLLAMA_BASE_URL, OLLAMA_PROVIDER_ID } from './types';
@@ -257,12 +253,11 @@ function buildOllamaProvider(baseUrl: string) {
 
 function buildModels(): MutableModels {
   const models = createModels({ credentials: credentialStore });
+  // Every provider pi-ai ships, plus our keyless OpenAI-compatible endpoint.
+  for (const provider of builtinProviders()) {
+    models.setProvider(provider);
+  }
   models.setProvider(buildOllamaProvider(getOllamaBaseUrl()));
-  models.setProvider(openaiProvider());
-  models.setProvider(anthropicProvider());
-  models.setProvider(openrouterProvider());
-  models.setProvider(deepseekProvider());
-  models.setProvider(groqProvider());
   return models;
 }
 

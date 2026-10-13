@@ -20,6 +20,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.apiKeyPlaceholder': 'Enter API key…',
   'agent.chatPlaceholder': 'Ask the agent…',
   'agent.clearKey': 'Clear key',
+  'agent.cloudProviders': 'Cloud providers',
   'agent.clearSelection': 'Clear selection',
   'agent.close': 'Close',
   'agent.connected': 'Connected · {{model}}',
@@ -70,6 +71,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.noMessages': 'No messages yet.',
   'agent.noModelsHint':
     'No verified model yet. Configure and test a connection in Settings → Agent to start chatting.',
+  'agent.noProvidersFound': 'No providers found.',
   'agent.ollamaBaseUrlField': 'Ollama base URL',
   'agent.ollamaBaseUrlHint':
     'Used for the local OpenAI-compatible provider. Set to your Ollama server, e.g. http://localhost:11434.',
@@ -80,7 +82,9 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.removeAttachment': 'Remove attachment',
   'agent.save': 'Save',
   'agent.saveKey': 'Save key',
+  'agent.searchProviders': 'Search providers…',
   'agent.selectModelPlaceholder': 'Select a model…',
+  'agent.selectProviderPlaceholder': 'Select a provider…',
   'agent.selectionClamped': 'Clamped selection: “{{preview}}” ({{count}} chars)',
   'agent.selectionCollapse': 'Hide selection',
   'agent.selectionExpand': 'Show selection',

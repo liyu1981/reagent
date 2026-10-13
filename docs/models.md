@@ -3,16 +3,21 @@
 ReAgent wraps `pi-ai`'s model registry and adds browser storage plus a
 verification step.
 
-## Built-in providers
+## Providers
+
+ReAgent registers **every provider `pi-ai` ships** (via `builtinProviders()`),
+plus one custom OpenAI-compatible endpoint. Common API-key providers include:
 
 | Provider id | Notes |
 | ----------- | ----- |
-| `openai` | OpenAI API key. |
-| `anthropic` | Anthropic API key. |
-| `openrouter` | OpenRouter API key. |
-| `deepseek` | DeepSeek API key. |
-| `groq` | Groq API key. |
-| `ollama` | Any OpenAI-compatible endpoint; defaults to `http://localhost:11434`, no key. |
+| `openai`, `anthropic`, `openrouter`, `deepseek`, `groq` | First-class cloud providers. |
+| `google`, `mistral`, `xai`, `together`, `fireworks`, `cerebras`, `nvidia`, `huggingface`, `moonshotai`, `zai`, `minimax`, `baseten`, `vercel-ai-gateway`, … | Also API key based. |
+| `amazon-bedrock`, `google-vertex`, `github-copilot`, `cloudflare-*`, `openai-codex`, … | Environment/OAuth-oriented; listed but not driven by a plain key. |
+| `ollama` | Custom local/OpenAI-compatible endpoint; defaults to `http://localhost:11434`, usually no key. |
+
+The settings UI groups these into **Custom Local LLM** and a searchable
+**Cloud providers** dropdown. The exact set depends on the installed `pi-ai`
+version — call `getModels().getProviders()` for the full list.
 
 ## Credentials
 
