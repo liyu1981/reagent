@@ -156,6 +156,10 @@ document; without it there is no editor UI and no editor tools.
 
 ## Conventions
 
+- **Commits are opt-in.** Do **not** run `git commit` (or `git push`) unless the
+  user explicitly asks you to commit. When they do, commit only the requested
+  change, then stop: do not chain additional commits, and do not commit any
+  later edits unless asked again.
 - **Never install or run a browser** (Chromium, Chrome, Playwright, Puppeteer,
   Firefox, …) in this environment — the system libraries are unavailable and
   must not be installed. There is no browser-based verification; rely on
