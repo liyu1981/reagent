@@ -25,11 +25,13 @@ function NotFound() {
 }
 
 export function App() {
-  const { theme, toggle } = useSiteTheme();
+  const { preference, theme, setPreference } = useSiteTheme();
 
   return (
     <Routes>
-      <Route element={<Layout theme={theme} onToggleTheme={toggle} />}>
+      <Route
+        element={<Layout preference={preference} onPreferenceChange={setPreference} />}
+      >
         <Route index element={<Home theme={theme} />} />
         <Route path="demos" element={<Demos theme={theme} />} />
         <Route path="docs" element={<Docs />} />

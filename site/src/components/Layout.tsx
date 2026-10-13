@@ -1,20 +1,89 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { cn } from '../lib/cn';
-import type { SiteTheme } from '../lib/theme';
-import { GithubIcon, MoonIcon, SunIcon } from './icons';
+import type { ThemePreference } from '../lib/theme';
+import { GithubIcon, MonitorIcon, MoonIcon, SunIcon } from './icons';
 
 const NAV = [
   { to: '/demos', label: 'Demos' },
   { to: '/docs', label: 'Docs' },
 ];
 
-export function Layout({
-  theme,
-  onToggleTheme,
+const THEME_OPTIONS: { value: ThemePreference; label: string; Icon: typeof SunIcon }[] = [
+  { value: 'system', label: 'System theme', Icon: MonitorIcon },
+  { value: 'light', label: 'Light theme', Icon: SunIcon },
+  { value: 'dark', label: 'Dark theme', Icon: MoonIcon },
+];
+
+const THEME_ICONS: Record<ThemePreference, typeof SunIcon> = {
+  system: MonitorIcon,
+  light: SunIcon,
+  dark: MoonIcon,
+};
+
+const THEME_CYCLE: ThemePreference[] = ['system', 'light', 'dark'];
+
+function nextPreference(current: ThemePreference): ThemePreference {
+  return THEME_CYCLE[(THEME_CYCLE.indexOf(current) + 1) % THEME_CYCLE.length];
+}
+
+/**
+ * Three-way picker on wider screens; a single cycling button on phones so the
+ * header never overflows.
+ */
+function ThemeSwitcher({
+  preference,
+  onChange,
 }: {
-  theme: SiteTheme;
-  onToggleTheme: () => void;
+  preference: ThemePreference;
+  onChange: (preference: ThemePreference) => void;
+}) {
+  const CycleIcon = THEME_ICONS[preference];
+  return (
+    <>
+      <div
+        role="group"
+        aria-label="Theme"
+        className="ml-1 hidden items-center rounded-lg border border-border p-0.5 sm:flex"
+      >
+        {THEME_OPTIONS.map(({ value, label, Icon }) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() => onChange(value)}
+            aria-label={label}
+            aria-pressed={preference === value}
+            title={label}
+            className={cn(
+              'rounded-md p-1.5 transition',
+              preference === value
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            <Icon className="size-4" />
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange(nextPreference(preference))}
+        aria-label={`Theme: ${preference}`}
+        title="Change theme"
+        className="rounded-lg p-2 text-muted-foreground transition hover:text-foreground sm:hidden"
+      >
+        <CycleIcon className="size-4" />
+      </button>
+    </>
+  );
+}
+
+export function Layout({
+  preference,
+  onPreferenceChange,
+}: {
+  preference: ThemePreference;
+  onPreferenceChange: (preference: ThemePreference) => void;
 }) {
   const location = useLocation();
   const isDocs = location.pathname.startsWith('/docs');
@@ -71,14 +140,7 @@ export function Layout({
             >
               <GithubIcon className="size-4" />
             </a>
-            <button
-              type="button"
-              onClick={onToggleTheme}
-              aria-label="Toggle theme"
-              className="rounded-lg p-2 text-muted-foreground transition hover:text-foreground"
-            >
-              {theme === 'dark' ? <SunIcon className="size-4" /> : <MoonIcon className="size-4" />}
-            </button>
+            <ThemeSwitcher preference={preference} onChange={onPreferenceChange} />
           </nav>
         </div>
       </header>
