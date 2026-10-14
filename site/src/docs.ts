@@ -1,4 +1,5 @@
 import components from '../../docs/components.md?raw';
+import forAgents from '../../docs/for-agents.md?raw';
 import headless from '../../docs/headless.md?raw';
 import hostIntegrations from '../../docs/host-integrations.md?raw';
 import installation from '../../docs/installation.md?raw';
@@ -103,6 +104,13 @@ export const DOCS: DocEntry[] = [
     group: 'Reference',
     summary: 'Build a custom UI on the provider and hooks.',
     content: headless,
+  },
+  {
+    slug: 'for-agents',
+    title: 'For coding agents',
+    group: 'Reference',
+    summary: 'The llms.txt index and skill.md integration guide.',
+    content: forAgents,
   },
 ];
 

@@ -22,6 +22,7 @@
 - [Multiple agents & storage](https://liyu1981.github.io/reagent/#/docs/multiple-agents): isolate agents with `storagePrefix`.
 - [Components & props](https://liyu1981.github.io/reagent/#/docs/components): the full `<ReAgent>` props table and UI parts.
 - [Headless usage](https://liyu1981.github.io/reagent/#/docs/headless): build a custom UI on the provider and hooks.
+- [For coding agents](https://liyu1981.github.io/reagent/#/docs/for-agents): this index and the skill.md integration guide.
 
 ## Source
 

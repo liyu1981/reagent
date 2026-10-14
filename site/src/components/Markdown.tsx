@@ -16,6 +16,10 @@ function toRoute(href: string): string | null {
   if (href.startsWith('#')) {
     return href;
   }
+  // Static files (llms.txt, skill.md, …) resolve as real links, not routes.
+  if (/\.[a-z0-9]+$/i.test(href)) {
+    return null;
+  }
   if (href === '.' || href === '..' || href === '../' || href === '../../' || href === '../..') {
     return '/';
   }
