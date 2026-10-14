@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { cn } from '../lib/cn';
+import { highlightCode } from '../lib/highlight';
 import { CheckIcon, CopyIcon } from './icons';
 
 export function CodeBlock({
@@ -15,6 +16,7 @@ export function CodeBlock({
   showCopy?: boolean;
 }) {
   const [copied, setCopied] = useState(false);
+  const html = useMemo(() => highlightCode(code, language), [code, language]);
 
   async function copy() {
     try {
@@ -51,7 +53,11 @@ export function CodeBlock({
         </button>
       )}
       <pre className="code-scroll min-h-0 flex-1 overflow-auto p-3 text-[13px] leading-relaxed">
-        <code className="font-mono">{code}</code>
+        <code
+          className="hljs font-mono"
+          // Highlighted by highlight.js; the input is our own source strings.
+          dangerouslySetInnerHTML={{ __html: html }}
+        />
       </pre>
     </div>
   );

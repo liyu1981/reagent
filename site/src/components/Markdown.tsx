@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import { cn } from '../lib/cn';
+import { highlightCode } from '../lib/highlight';
 
 /**
  * Map a markdown link from the docs to a route. External URLs and in-page
@@ -37,6 +38,20 @@ const components: Components = {
         {children}
       </a>
     );
+  },
+  code({ className, children }) {
+    const language = /language-(\w+)/.exec(className ?? '')?.[1];
+    if (language !== undefined) {
+      const raw = String(children).replace(/\n$/, '');
+      return (
+        <code
+          className={cn('hljs', className)}
+          // Highlighted locally from the docs/demo source strings.
+          dangerouslySetInnerHTML={{ __html: highlightCode(raw, language) }}
+        />
+      );
+    }
+    return <code className={className}>{children}</code>;
   },
 };
 

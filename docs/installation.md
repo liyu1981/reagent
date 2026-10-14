@@ -51,7 +51,7 @@ your stylesheet lives elsewhere.
 
 No extra configuration is required; the package ships its own declarations:
 
-```jsonc
+```json
 {
   "compilerOptions": {
     "moduleResolution": "bundler", // or "node16" / "nodenext"

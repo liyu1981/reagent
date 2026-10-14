@@ -13,6 +13,7 @@
     "@earendil-works/pi-agent-core": "0.84.2",
     "@earendil-works/pi-ai": "0.84.2",
     "@liyu1981/reagent": "workspace:*",
+    "highlight.js": "^11.12.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-markdown": "^10.1.0",

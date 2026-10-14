@@ -101,7 +101,7 @@ export function Layout({
             </span>
             ReAgent
             <span className="ml-1 hidden rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
-              v0.1.0
+              v{__APP_VERSION__}
             </span>
           </Link>
 
