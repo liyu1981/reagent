@@ -53,6 +53,8 @@ export type AgentToolGroup = 'content' | 'editor' | 'web' | 'skills' | 'mcp';
 
 export interface AgentToolBuildContext {
   editor?: EditorMutationBridge;
+  /** Storage prefix of the agent being built. */
+  prefix?: string;
 }
 
 export interface AgentToolDescriptor {

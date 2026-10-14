@@ -8,6 +8,7 @@ export * from './core/hooks';
 export * from './core/i18n';
 export {
   getExaApiKey,
+  getMcpManager,
   listMcpServers,
   type McpServerStatus,
   mcpManager,
@@ -35,6 +36,7 @@ export * from './core/prompt';
 export * from './core/reagent-provider';
 export * from './core/session-store';
 export * from './core/skill-registry';
+export * from './core/storage';
 export * from './core/tools';
 export * from './core/types';
 

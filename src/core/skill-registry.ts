@@ -2,6 +2,7 @@ import type { AgentTool } from '@earendil-works/pi-agent-core';
 import { Type } from '@earendil-works/pi-ai';
 
 import { getAgentConfig } from './config';
+import { DEFAULT_STORAGE_PREFIX } from './storage';
 import type { AgentConfig, AgentSkillDefinition } from './types';
 
 /**
@@ -94,7 +95,9 @@ const useSkillParameters = Type.Object({
 });
 
 /** The on-demand skill loader. Reads the live registry on every call. */
-export function buildUseSkillTool(): AgentTool<typeof useSkillParameters> {
+export function buildUseSkillTool(
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): AgentTool<typeof useSkillParameters> {
   return {
     name: USE_SKILL_TOOL_ID,
     label: 'Use skill',
@@ -102,7 +105,7 @@ export function buildUseSkillTool(): AgentTool<typeof useSkillParameters> {
       'Load the full instructions for one of the available skills by its exact name. Call this when a task matches a skill description, then follow the returned instructions.',
     parameters: useSkillParameters,
     execute: async (_id, args) => {
-      const skills = enabledSkillDefinitions();
+      const skills = enabledSkillDefinitions(getAgentConfig(prefix));
       const wanted = args.name.trim().toLowerCase();
       const skill = skills.find(candidate => candidate.name.trim().toLowerCase() === wanted);
 
@@ -118,6 +121,8 @@ export function buildUseSkillTool(): AgentTool<typeof useSkillParameters> {
 }
 
 /** Enabled skill tools (empty when no skill is enabled). */
-export function buildSkillTools(): AgentTool<any>[] {
-  return enabledSkillDefinitions().length === 0 ? [] : [buildUseSkillTool()];
+export function buildSkillTools(prefix: string = DEFAULT_STORAGE_PREFIX): AgentTool<any>[] {
+  return enabledSkillDefinitions(getAgentConfig(prefix)).length === 0
+    ? []
+    : [buildUseSkillTool(prefix)];
 }

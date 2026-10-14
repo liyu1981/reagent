@@ -13,9 +13,13 @@ import {
 } from 'react';
 import { buildAgent } from './agent';
 import { blobToBase64, makeVisionImage } from './attachments';
-import { getAgentConfig, subscribeAgentConfig, updateAgentConfig } from './config';
+import {
+  getAgentConfig,
+  subscribeAgentConfig,
+  updateAgentConfig as updateConfigPatch,
+} from './config';
 import type { EditorMutationBridge } from './editor-mutations';
-import { EXA_SERVER_ID, mcpManager, setExaApiKey, syncMcpServersWithTimeout } from './mcp';
+import { EXA_SERVER_ID, getMcpManager, setExaApiKey, syncMcpServersWithTimeout } from './mcp';
 import {
   makeTranslator,
   type ReAgentMarkdown,
@@ -41,6 +45,7 @@ import {
   saveSession,
 } from './session-store';
 import { enabledSkillDefinitions, skillsSystemPrompt } from './skill-registry';
+import { resolveStoragePrefix, storageKey } from './storage';
 import { buildAgentTools, listToolDescriptors } from './tools';
 import type {
   AgentAttachment,
@@ -61,6 +66,8 @@ export interface ModelOption {
 export interface ReAgentContextValue {
   config: AgentConfig;
   updateConfig: (patch: Partial<AgentConfig>) => void;
+  /** Storage namespace this agent persists under. */
+  storagePrefix: string;
   models: ModelOption[];
   activeModel: Model<Api> | undefined;
   visionEnabled: boolean;
@@ -122,11 +129,9 @@ export type ReAgentView = 'chat' | 'settings' | 'sessions';
 
 export const ReAgentContext = createContext<ReAgentContextValue | null>(null);
 
-const LAST_MODEL_KEY = 'agent.lastModel';
-
-function readLastModel(): { providerId: string; modelId: string } | undefined {
+function readLastModel(prefix: string): { providerId: string; modelId: string } | undefined {
   try {
-    const raw = localStorage.getItem(LAST_MODEL_KEY);
+    const raw = localStorage.getItem(storageKey(prefix, 'lastModel'));
     return raw === null ? undefined : (JSON.parse(raw) as { providerId: string; modelId: string });
   } catch {
     return undefined;
@@ -159,6 +164,12 @@ export interface ReAgentProviderProps {
   renderMarkdown?: ReAgentMarkdown;
   /** Upload a file the model cannot read; returns markdown to insert. */
   uploadFile?: (file: File) => Promise<string>;
+  /**
+   * Namespace for all persisted state (localStorage keys + the conversation
+   * IndexedDB). Defaults to the shared `agent` prefix; pass a different value
+   * to run several independent agents on one page/origin.
+   */
+  storagePrefix?: string;
   children: ReactNode;
 }
 
@@ -176,10 +187,22 @@ export function ReAgentProvider({
   notify,
   renderMarkdown,
   uploadFile,
+  storagePrefix,
   children,
 }: ReAgentProviderProps) {
   const t = useMemo(() => translate ?? makeTranslator(messages), [translate, messages]);
-  const config = useSyncExternalStore(subscribeAgentConfig, getAgentConfig);
+  const prefix = resolveStoragePrefix(storagePrefix);
+  const mcp = useMemo(() => getMcpManager(prefix), [prefix]);
+  const subscribeConfig = useCallback(
+    (listener: () => void) => subscribeAgentConfig(listener, prefix),
+    [prefix],
+  );
+  const readConfig = useCallback(() => getAgentConfig(prefix), [prefix]);
+  const config = useSyncExternalStore(subscribeConfig, readConfig);
+  const updateConfig = useCallback(
+    (patch: Partial<AgentConfig>) => updateConfigPatch(patch, prefix),
+    [prefix],
+  );
 
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [streaming, setStreaming] = useState(false);
@@ -229,9 +252,9 @@ export function ReAgentProvider({
   }, [selection]);
 
   useEffect(() => {
-    setMcpTools(mcpManager.getTools());
-    return mcpManager.subscribe(() => {
-      const tools = mcpManager.getTools();
+    setMcpTools(mcp.getTools());
+    return mcp.subscribe(() => {
+      const tools = mcp.getTools();
       setMcpTools(tools);
       const agent = agentRef.current;
       const active = latestRef.current;
@@ -241,14 +264,15 @@ export function ReAgentProvider({
           extraTools: [...tools, ...(extraToolsRef.current ?? [])],
           extraDescriptors: extraDescriptorsRef.current ?? [],
           disabledIds: configRef.current.toolsDisabled,
+          prefix,
         });
       }
     });
-  }, []);
+  }, [mcp, prefix]);
 
   useEffect(
     () =>
-      mcpManager.onAuthRequired(serverId => {
+      mcp.onAuthRequired(serverId => {
         if (serverId === EXA_SERVER_ID) {
           setExaKeyPrompt(true);
         }
@@ -256,19 +280,24 @@ export function ReAgentProvider({
     [],
   );
 
-  const modelsVersion = useSyncExternalStore(subscribeModels, getModelsVersion);
-  const models = useMemo(() => listAvailableModels(), [config, modelsVersion]);
+  const modelsVersion = useSyncExternalStore(
+    useCallback((listener: () => void) => subscribeModels(listener, prefix), [prefix]),
+    useCallback(() => getModelsVersion(prefix), [prefix]),
+  );
+  const models = useMemo(() => listAvailableModels(prefix), [config, modelsVersion, prefix]);
 
   const activeSession = sessions.find(session => session.id === config.activeSessionId) ?? null;
   const activeModel =
-    activeSession !== null ? getModel(activeSession.providerId, activeSession.modelId) : undefined;
+    activeSession !== null
+      ? getModel(activeSession.providerId, activeSession.modelId, prefix)
+      : undefined;
   const visionEnabled = activeModel?.input.includes('image') ?? false;
 
   const toolLabels = useMemo(() => {
     const map = new Map<string, string>();
     const descriptors = listToolDescriptors(extraDescriptorsRef.current ?? [], {
       hasEditor: editorRef.current !== undefined && editorRef.current !== null,
-      hasSkills: enabledSkillDefinitions().length > 0,
+      hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,
     });
     for (const descriptor of descriptors) {
       map.set(descriptor.name, descriptor.label);
@@ -277,12 +306,12 @@ export function ReAgentProvider({
       map.set(tool.name, tool.label);
     }
     return map;
-  }, [mcpTools, config]);
+  }, [mcpTools, config, prefix]);
 
   const persistSession = useCallback(async (sessionNow: AgentSession, messages: AgentMessage[]) => {
     const updated: AgentSession = { ...sessionNow, messages, updatedAt: Date.now() };
     latestRef.current = updated;
-    await saveSession(updated);
+    await saveSession(updated, prefix);
     setSessions(prev => prev.map(session => (session.id === updated.id ? updated : session)));
   }, []);
 
@@ -314,15 +343,16 @@ export function ReAgentProvider({
     const base = resolveSystemPrompt(
       t('agent.systemPrompt', { language: answerLanguage }),
       answerLanguage,
+      prefix,
     );
-    const skills = skillsSystemPrompt();
+    const skills = skillsSystemPrompt(getAgentConfig(prefix));
     return skills === '' ? base : `${base}\n\n${skills}`;
-  }, [language, t]);
+  }, [language, t, prefix]);
 
   const defaultModel = useCallback((): { providerId: string; modelId: string } | undefined => {
-    const available = listAvailableModels();
+    const available = listAvailableModels(prefix);
     const configured = configRef.current.model;
-    const last = configured ?? readLastModel();
+    const last = configured ?? readLastModel(prefix);
     if (
       last !== null &&
       last !== undefined &&
@@ -335,7 +365,7 @@ export function ReAgentProvider({
     return fallback !== undefined
       ? { providerId: fallback.provider, modelId: fallback.model.id }
       : undefined;
-  }, []);
+  }, [prefix]);
 
   const subscribeAgent = useCallback(
     (instance: Agent, sessionNow: AgentSession) => {
@@ -431,9 +461,9 @@ export function ReAgentProvider({
   const buildForSession = useCallback(
     async (sessionNow: AgentSession): Promise<Agent | null> => {
       agentRef.current?.abort();
-      await syncMcpServersWithTimeout();
+      await syncMcpServersWithTimeout(prefix);
 
-      const extra = [...mcpManager.getTools(), ...(extraToolsRef.current ?? [])];
+      const extra = [...mcp.getTools(), ...(extraToolsRef.current ?? [])];
       try {
         const instance = buildAgent({
           providerId: sessionNow.providerId,
@@ -446,6 +476,7 @@ export function ReAgentProvider({
           extraTools: extra,
           extraDescriptors: extraDescriptorsRef.current ?? [],
           disabledToolIds: configRef.current.toolsDisabled,
+          prefix,
         });
         agentRef.current = instance;
         latestRef.current = { ...sessionNow, messages: [...instance.state.messages] };
@@ -457,7 +488,7 @@ export function ReAgentProvider({
         return null;
       }
     },
-    [currentBasePrompt, subscribeAgent],
+    [currentBasePrompt, subscribeAgent, prefix],
   );
 
   const createSession = useCallback(async (): Promise<AgentSession | null> => {
@@ -481,10 +512,10 @@ export function ReAgentProvider({
       updatedAt: now,
       messages: [],
     };
-    await saveSession(next);
+    await saveSession(next, prefix);
     setSessions(prev => [...prev, next]);
     latestRef.current = next;
-    updateAgentConfig({ activeSessionId: next.id, model });
+    updateConfig({ activeSessionId: next.id, model });
     await buildForSession(next);
     setStreaming(false);
     setStreamingText('');
@@ -500,7 +531,7 @@ export function ReAgentProvider({
         return;
       }
       agentRef.current?.abort();
-      updateAgentConfig({ activeSessionId: id });
+      updateConfig({ activeSessionId: id });
       latestRef.current = target;
       setStreaming(false);
       setStreamingText('');
@@ -526,7 +557,7 @@ export function ReAgentProvider({
       });
       setSessions(prev => [...prev, fork]);
       agentRef.current?.abort();
-      updateAgentConfig({ activeSessionId: fork.id });
+      updateConfig({ activeSessionId: fork.id });
       latestRef.current = fork;
       setStreaming(false);
       setStreamingText('');
@@ -547,7 +578,7 @@ export function ReAgentProvider({
     if (latestRef.current?.id === id) {
       latestRef.current = updated;
     }
-    await saveSession(updated);
+    await saveSession(updated, prefix);
     setSessions(prev => prev.map(session => (session.id === id ? updated : session)));
   }, []);
 
@@ -555,7 +586,7 @@ export function ReAgentProvider({
     async (id: string) => {
       const target = sessionsRef.current.find(session => session.id === id);
       const grandparent = target?.parentId ?? null;
-      await deleteSessionRecord(id);
+      await deleteSessionRecord(id, prefix);
       const remaining = sessionsRef.current
         .filter(session => session.id !== id)
         .map(session =>
@@ -573,7 +604,7 @@ export function ReAgentProvider({
           agentRef.current?.abort();
           agentRef.current = null;
           latestRef.current = null;
-          updateAgentConfig({ activeSessionId: null });
+          updateConfig({ activeSessionId: null });
         }
       }
     },
@@ -584,8 +615,8 @@ export function ReAgentProvider({
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      await refreshModels().catch(() => undefined);
-      const all = await listSessions();
+      await refreshModels(prefix).catch(() => undefined);
+      const all = await listSessions(prefix);
       if (cancelled) {
         return;
       }
@@ -604,7 +635,7 @@ export function ReAgentProvider({
         await createSession();
       } else if (active !== null) {
         latestRef.current = active;
-        updateAgentConfig({ activeSessionId: active.id });
+        updateConfig({ activeSessionId: active.id });
         await buildForSession(active);
       } else {
         await createSession();
@@ -618,11 +649,14 @@ export function ReAgentProvider({
       const agent = agentRef.current;
       const session = latestRef.current;
       if (agent !== null && session !== null) {
-        void saveSession({
-          ...session,
-          messages: [...agent.state.messages],
-          updatedAt: Date.now(),
-        });
+        void saveSession(
+          {
+            ...session,
+            messages: [...agent.state.messages],
+            updatedAt: Date.now(),
+          },
+          prefix,
+        );
       }
       agent?.abort();
       agentRef.current = null;
@@ -788,7 +822,7 @@ export function ReAgentProvider({
       const instance = agentRef.current;
       const active = latestRef.current;
       if (instance !== null && active !== null) {
-        const model = getModel(providerId, modelId);
+        const model = getModel(providerId, modelId, prefix);
         if (model !== undefined) {
           instance.state.model = model;
         }
@@ -796,9 +830,9 @@ export function ReAgentProvider({
         latestRef.current = next;
         void persistSession(next, instance.state.messages);
       }
-      updateAgentConfig({ model: { providerId, modelId } });
+      updateConfig({ model: { providerId, modelId } });
     },
-    [persistSession],
+    [persistSession, prefix, updateConfig],
   );
 
   const changeThinking = useCallback(
@@ -811,7 +845,7 @@ export function ReAgentProvider({
         latestRef.current = next;
         void persistSession(next, instance.state.messages);
       }
-      updateAgentConfig({ thinkingLevel: level });
+      updateConfig({ thinkingLevel: level });
     },
     [persistSession],
   );
@@ -833,18 +867,19 @@ export function ReAgentProvider({
   }, [onClearSelection]);
 
   const saveExaKey = useCallback(async (key: string) => {
-    setExaApiKey(key);
+    setExaApiKey(key, prefix);
     setExaKeyPrompt(false);
-    await mcpManager.reset();
-    await syncMcpServersWithTimeout();
-    setMcpTools(mcpManager.getTools());
+    await mcp.reset();
+    await syncMcpServersWithTimeout(prefix);
+    setMcpTools(mcp.getTools());
   }, []);
 
   const sessionTree = useMemo(() => buildSessionTree(sessions), [sessions]);
 
   const value: ReAgentContextValue = {
     config,
-    updateConfig: updateAgentConfig,
+    updateConfig,
+    storagePrefix: prefix,
     models,
     activeModel,
     visionEnabled,
@@ -888,7 +923,7 @@ export function ReAgentProvider({
     toolLabels,
     tools: listToolDescriptors(extraDescriptorsRef.current ?? [], {
       hasEditor: editor !== undefined && editor !== null,
-      hasSkills: enabledSkillDefinitions().length > 0,
+      hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,
     }),
     t,
     language,

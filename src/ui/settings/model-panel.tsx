@@ -1,5 +1,6 @@
 import { Check, ChevronsUpDown, KeyRound, Loader2, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useReAgent } from '../../core/hooks';
 import { useToast, useTranslation } from '../../core/i18n';
 import {
   clearApiKey,
@@ -123,12 +124,13 @@ function StatusMessage({ status }: { status: PanelStatus }) {
 export function ReAgentModelPanel() {
   const { t } = useTranslation();
   const toast = useToast();
+  const { storagePrefix } = useReAgent();
   const providers = useMemo(
     () =>
-      getModels()
+      getModels(storagePrefix)
         .getProviders()
         .map(provider => ({ id: provider.id, name: provider.name })),
-    [],
+    [storagePrefix],
   );
   const cloudProviders = useMemo(
     () => providers.filter(provider => provider.id !== OLLAMA_PROVIDER_ID),
@@ -142,7 +144,7 @@ export function ReAgentModelPanel() {
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [configured, setConfigured] = useState<Record<string, boolean>>({});
   const [verified, setVerified] = useState<Record<string, boolean>>({});
-  const [ollamaUrl, setOllamaUrl] = useState(getOllamaBaseUrl());
+  const [ollamaUrl, setOllamaUrl] = useState(getOllamaBaseUrl(storagePrefix));
   const [refreshing, setRefreshing] = useState(false);
   const [testing, setTesting] = useState<Record<string, boolean>>({});
   const [status, setStatus] = useState<Record<string, PanelStatus>>({});
@@ -151,8 +153,8 @@ export function ReAgentModelPanel() {
     const saved: Record<string, boolean> = {};
     const proven: Record<string, boolean> = {};
     for (const provider of providers) {
-      saved[provider.id] = hasCredential(provider.id);
-      proven[provider.id] = isVerified(provider.id);
+      saved[provider.id] = hasCredential(provider.id, storagePrefix);
+      proven[provider.id] = isVerified(provider.id, storagePrefix);
     }
     setConfigured(saved);
     setVerified(proven);
@@ -163,13 +165,13 @@ export function ReAgentModelPanel() {
     if (key === '') {
       return;
     }
-    await saveApiKey(providerId, key);
+    await saveApiKey(providerId, key, storagePrefix);
     setConfigured(prev => ({ ...prev, [providerId]: true }));
     setStatus(prev => ({ ...prev, [providerId]: { ok: true, message: t('agent.keySaved') } }));
   }
 
   async function handleClearKey(providerId: string) {
-    await clearApiKey(providerId);
+    await clearApiKey(providerId, storagePrefix);
     setConfigured(prev => ({ ...prev, [providerId]: false }));
     setStatus(prev => ({ ...prev, [providerId]: { ok: true, message: t('agent.keyCleared') } }));
   }
@@ -178,7 +180,7 @@ export function ReAgentModelPanel() {
     setTesting(prev => ({ ...prev, [providerId]: true }));
     setStatus(prev => ({ ...prev, [providerId]: { ok: true, message: t('agent.testing') } }));
     try {
-      const modelId = await testConnection(providerId);
+      const modelId = await testConnection(providerId, storagePrefix);
       setVerified(prev => ({ ...prev, [providerId]: true }));
       setStatus(prev => ({
         ...prev,
@@ -199,13 +201,13 @@ export function ReAgentModelPanel() {
   }
 
   const handleSaveOllama = useCallback(() => {
-    setOllamaBaseUrl(ollamaUrl);
+    setOllamaBaseUrl(ollamaUrl, storagePrefix);
     toast.success(t('agent.ollamaSaved'));
   }, [ollamaUrl, t]);
 
   const handleRefresh = useCallback(async () => {
     setRefreshing(true);
-    await refreshModels();
+    await refreshModels(storagePrefix);
     setRefreshing(false);
     toast.success(t('agent.modelsRefreshed'));
   }, [t]);

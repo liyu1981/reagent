@@ -14,11 +14,10 @@ import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completio
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
 
 import { getAgentConfig, updateAgentConfig } from './config';
+import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
 import { DEFAULT_OLLAMA_BASE_URL, OLLAMA_PROVIDER_ID } from './types';
 
 export { OLLAMA_PROVIDER_ID };
-
-const VERIFIED_KEY = 'agent.verified.providers';
 
 function readJson<T>(key: string): T | undefined {
   try {
@@ -36,13 +35,15 @@ function writeJson(key: string, value: unknown): void {
 /**
  * localStorage-backed CredentialStore implementing pi-ai's read/modify/delete
  * contract. Keys stay on the device; pi-ai resolves them per request and sends
- * them straight to the provider the user chose.
+ * them straight to the provider the user chose. Namespaced per storage prefix.
  */
 class LocalCredentialStore implements CredentialStore {
   private readonly chains = new Map<string, Promise<unknown>>();
 
+  constructor(private readonly prefix: string) {}
+
   private credentialKey(providerId: string): string {
-    return `agent.credential.${providerId}`;
+    return storageKey(this.prefix, `credential.${providerId}`);
   }
 
   async read(providerId: string): Promise<Credential | undefined> {
@@ -50,18 +51,17 @@ class LocalCredentialStore implements CredentialStore {
   }
 
   async list(): Promise<readonly CredentialInfo[]> {
+    const base = `${storageKey(this.prefix, 'credential.')}`;
     const infos: CredentialInfo[] = [];
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
-      if (key === null) {
+      if (key === null || !key.startsWith(base)) {
         continue;
       }
-      const match = key.match(/^agent\.credential\.(.+)$/);
-      if (match) {
-        const credential = readJson<Credential>(key);
-        if (credential !== undefined) {
-          infos.push({ providerId: match[1], type: credential.type });
-        }
+      const providerId = key.slice(base.length);
+      const credential = readJson<Credential>(key);
+      if (credential !== undefined) {
+        infos.push({ providerId, type: credential.type });
       }
     }
     return infos;
@@ -98,33 +98,45 @@ class LocalCredentialStore implements CredentialStore {
   }
 }
 
-const credentialStore = new LocalCredentialStore();
+const credentialStores = new Map<string, LocalCredentialStore>();
 
-export function getOllamaBaseUrl(): string {
-  return getAgentConfig().providers[OLLAMA_PROVIDER_ID]?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL;
+function credentialStore(prefix: string): LocalCredentialStore {
+  let store = credentialStores.get(prefix);
+  if (store === undefined) {
+    store = new LocalCredentialStore(prefix);
+    credentialStores.set(prefix, store);
+  }
+  return store;
 }
 
-export function setOllamaBaseUrl(url: string): void {
+export function getOllamaBaseUrl(prefix: string = DEFAULT_STORAGE_PREFIX): string {
+  return getAgentConfig(prefix).providers[OLLAMA_PROVIDER_ID]?.baseUrl ?? DEFAULT_OLLAMA_BASE_URL;
+}
+
+export function setOllamaBaseUrl(url: string, prefix: string = DEFAULT_STORAGE_PREFIX): void {
   const normalized = url.trim().replace(/\/+$/, '') || DEFAULT_OLLAMA_BASE_URL;
-  const config = getAgentConfig();
-  updateAgentConfig({
-    providers: {
-      ...config.providers,
-      [OLLAMA_PROVIDER_ID]: { ...config.providers[OLLAMA_PROVIDER_ID], baseUrl: normalized },
+  const config = getAgentConfig(prefix);
+  updateAgentConfig(
+    {
+      providers: {
+        ...config.providers,
+        [OLLAMA_PROVIDER_ID]: { ...config.providers[OLLAMA_PROVIDER_ID], baseUrl: normalized },
+      },
     },
-  });
-  unverify(OLLAMA_PROVIDER_ID);
-  rebuildModels();
+    prefix,
+  );
+  unverify(OLLAMA_PROVIDER_ID, prefix);
+  rebuildModels(prefix);
   // Warm the catalog for the new endpoint. The test button then re-renders the
   // UI once the user confirms the connection.
-  void getModels()
+  void getModels(prefix)
     .refresh({ providers: [OLLAMA_PROVIDER_ID], force: true })
-    .then(notifyModels)
+    .then(() => notifyModels(prefix))
     .catch(() => undefined);
 }
 
-function legacyVerified(): string[] {
-  const raw = localStorage.getItem(VERIFIED_KEY);
+function legacyVerified(prefix: string): string[] {
+  const raw = localStorage.getItem(storageKey(prefix, 'verified.providers'));
   if (raw === null) {
     return [];
   }
@@ -137,52 +149,68 @@ function legacyVerified(): string[] {
 }
 
 /** Providers whose connection was verified by a successful test. */
-export function isVerified(providerId: string): boolean {
-  const config = getAgentConfig();
+export function isVerified(providerId: string, prefix: string = DEFAULT_STORAGE_PREFIX): boolean {
+  const config = getAgentConfig(prefix);
   if (config.providers[providerId]?.verified !== undefined) {
     return config.providers[providerId]?.verified === true;
   }
-  return legacyVerified().includes(providerId);
+  return legacyVerified(prefix).includes(providerId);
 }
 
-function markVerified(providerId: string): void {
-  const config = getAgentConfig();
-  updateAgentConfig({
-    providers: {
-      ...config.providers,
-      [providerId]: { ...config.providers[providerId], verified: true },
+function markVerified(providerId: string, prefix: string): void {
+  const config = getAgentConfig(prefix);
+  updateAgentConfig(
+    {
+      providers: {
+        ...config.providers,
+        [providerId]: { ...config.providers[providerId], verified: true },
+      },
     },
-  });
+    prefix,
+  );
 }
 
-function unverify(providerId: string): void {
-  const config = getAgentConfig();
+function unverify(providerId: string, prefix: string): void {
+  const config = getAgentConfig(prefix);
   if (config.providers[providerId] === undefined) {
     return;
   }
-  updateAgentConfig({
-    providers: {
-      ...config.providers,
-      [providerId]: { ...config.providers[providerId], verified: false },
+  updateAgentConfig(
+    {
+      providers: {
+        ...config.providers,
+        [providerId]: { ...config.providers[providerId], verified: false },
+      },
     },
-  });
+    prefix,
+  );
 }
 
-export function hasCredential(providerId: string): boolean {
-  return localStorage.getItem(`agent.credential.${providerId}`) !== null;
+export function hasCredential(
+  providerId: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): boolean {
+  return localStorage.getItem(storageKey(prefix, `credential.${providerId}`)) !== null;
 }
 
-export async function saveApiKey(providerId: string, key: string): Promise<void> {
-  await credentialStore.modify(providerId, async () => ({
+export async function saveApiKey(
+  providerId: string,
+  key: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<void> {
+  await credentialStore(prefix).modify(providerId, async () => ({
     type: 'api_key' as const,
     key: key.trim(),
   }));
-  unverify(providerId);
+  unverify(providerId, prefix);
 }
 
-export async function clearApiKey(providerId: string): Promise<void> {
-  await credentialStore.delete(providerId);
-  unverify(providerId);
+export async function clearApiKey(
+  providerId: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<void> {
+  await credentialStore(prefix).delete(providerId);
+  unverify(providerId, prefix);
 }
 
 function ollamaModel(id: string, baseUrl: string): Model<'openai-completions'> {
@@ -251,56 +279,76 @@ function buildOllamaProvider(baseUrl: string) {
   });
 }
 
-function buildModels(): MutableModels {
-  const models = createModels({ credentials: credentialStore });
+function buildModels(prefix: string): MutableModels {
+  const models = createModels({ credentials: credentialStore(prefix) });
   // Every provider pi-ai ships, plus our keyless OpenAI-compatible endpoint.
   for (const provider of builtinProviders()) {
     models.setProvider(provider);
   }
-  models.setProvider(buildOllamaProvider(getOllamaBaseUrl()));
+  models.setProvider(buildOllamaProvider(getOllamaBaseUrl(prefix)));
   return models;
 }
 
-let models: MutableModels | null = null;
+const modelsByPrefix = new Map<string, MutableModels>();
 
 // A tiny external store so the UI can recompute its model list whenever the
 // registry is rebuilt or refreshed (e.g. after changing the Ollama base URL).
-const modelsListeners = new Set<() => void>();
-let modelsVersion = 0;
+const modelsListeners = new Map<string, Set<() => void>>();
+const modelsVersions = new Map<string, number>();
 
-function notifyModels(): void {
-  modelsVersion += 1;
-  for (const listener of modelsListeners) {
+function listenersFor(prefix: string): Set<() => void> {
+  let set = modelsListeners.get(prefix);
+  if (set === undefined) {
+    set = new Set();
+    modelsListeners.set(prefix, set);
+  }
+  return set;
+}
+
+function notifyModels(prefix: string): void {
+  modelsVersions.set(prefix, (modelsVersions.get(prefix) ?? 0) + 1);
+  for (const listener of listenersFor(prefix)) {
     listener();
   }
 }
 
-export function subscribeModels(listener: () => void): () => void {
-  modelsListeners.add(listener);
+export function subscribeModels(
+  listener: () => void,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): () => void {
+  const listeners = listenersFor(prefix);
+  listeners.add(listener);
   return () => {
-    modelsListeners.delete(listener);
+    listeners.delete(listener);
   };
 }
 
-export function getModelsVersion(): number {
-  return modelsVersion;
+export function getModelsVersion(prefix: string = DEFAULT_STORAGE_PREFIX): number {
+  return modelsVersions.get(prefix) ?? 0;
 }
 
-export function getModels(): MutableModels {
-  if (models === null) {
-    models = buildModels();
+export function getModels(prefix: string = DEFAULT_STORAGE_PREFIX): MutableModels {
+  let models = modelsByPrefix.get(prefix);
+  if (models === undefined) {
+    models = buildModels(prefix);
+    modelsByPrefix.set(prefix, models);
   }
   return models;
 }
 
-export function rebuildModels(): MutableModels {
-  models = buildModels();
-  notifyModels();
+export function rebuildModels(prefix: string = DEFAULT_STORAGE_PREFIX): MutableModels {
+  const models = buildModels(prefix);
+  modelsByPrefix.set(prefix, models);
+  notifyModels(prefix);
   return models;
 }
 
-export function getModel(providerId: string, modelId: string) {
-  return getModels().getModel(providerId, modelId);
+export function getModel(
+  providerId: string,
+  modelId: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+) {
+  return getModels(prefix).getModel(providerId, modelId);
 }
 
 /**
@@ -308,15 +356,15 @@ export function getModel(providerId: string, modelId: string) {
  * This is the only list the agent UI should offer, so unconfigured providers
  * never show up in the model selector.
  */
-export function listAvailableModels(): Array<{
+export function listAvailableModels(prefix: string = DEFAULT_STORAGE_PREFIX): Array<{
   provider: string;
   providerName: string;
   model: Model<Api>;
 }> {
-  const modelsAll = getModels();
+  const modelsAll = getModels(prefix);
   const out: Array<{ provider: string; providerName: string; model: Model<Api> }> = [];
   for (const provider of modelsAll.getProviders()) {
-    if (!isVerified(provider.id)) {
+    if (!isVerified(provider.id, prefix)) {
       continue;
     }
     for (const model of modelsAll.getModels(provider.id)) {
@@ -326,9 +374,9 @@ export function listAvailableModels(): Array<{
   return out;
 }
 
-export async function refreshModels(): Promise<void> {
-  await getModels().refresh();
-  notifyModels();
+export async function refreshModels(prefix: string = DEFAULT_STORAGE_PREFIX): Promise<void> {
+  await getModels(prefix).refresh();
+  notifyModels(prefix);
 }
 
 /**
@@ -338,14 +386,17 @@ export async function refreshModels(): Promise<void> {
  * are verified without depending on a specific model being loaded. Rejects
  * with a human-readable message on failure.
  */
-export async function testConnection(providerId: string): Promise<string> {
-  const models = getModels();
-  const auth = await models.getAuth(providerId);
+export async function testConnection(
+  providerId: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<string> {
+  const registry = getModels(prefix);
+  const auth = await registry.getAuth(providerId);
   if (auth === undefined) {
     throw new Error('not_configured');
   }
   if (providerId === OLLAMA_PROVIDER_ID) {
-    const v1Url = models.getProvider(providerId)?.baseUrl;
+    const v1Url = registry.getProvider(providerId)?.baseUrl;
     if (v1Url === undefined) {
       throw new Error('no_model');
     }
@@ -358,21 +409,21 @@ export async function testConnection(providerId: string): Promise<string> {
     const probeCount = data?.data?.length ?? 0;
     // Populate the provider catalog *before* marking it verified, so the model
     // picker already has models when React re-renders from the config update.
-    await models.refresh({ providers: [providerId], force: true });
-    markVerified(providerId);
-    const count = models.getModels(providerId).length || probeCount;
+    await registry.refresh({ providers: [providerId], force: true });
+    markVerified(providerId, prefix);
+    const count = registry.getModels(providerId).length || probeCount;
     return count > 0 ? `${count} model${count === 1 ? '' : 's'}` : 'reachable';
   }
-  const model = models.getModels(providerId)[0];
+  const model = registry.getModels(providerId)[0];
   if (model === undefined) {
     throw new Error('no_model');
   }
-  const response = await models.completeSimple(model, {
+  const response = await registry.completeSimple(model, {
     messages: [{ role: 'user', content: 'Reply with exactly: ok', timestamp: Date.now() }],
   });
   if (response.stopReason === 'error' || response.stopReason === 'aborted') {
     throw new Error(response.errorMessage ?? `request_failed_${response.stopReason}`);
   }
-  markVerified(providerId);
+  markVerified(providerId, prefix);
   return model.id;
 }

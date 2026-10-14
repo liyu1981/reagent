@@ -1,15 +1,15 @@
 import type { AgentMessage, ThinkingLevel } from '@earendil-works/pi-agent-core';
 
 import { newSkillId } from './config';
+import { DEFAULT_STORAGE_PREFIX, storageDatabase } from './storage';
 import type { AgentSession, AgentSessionNode } from './types';
 
-const DB_NAME = 'reagent-agent';
 const DB_VERSION = 2;
 const STORE = 'sessions';
 
-function openDb(): Promise<IDBDatabase> {
+function openDb(prefix: string): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    const request = indexedDB.open(storageDatabase(prefix), DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
       let store: IDBObjectStore;
@@ -51,8 +51,10 @@ function normalize(row: AgentSession): AgentSession {
   };
 }
 
-export async function listSessions(): Promise<AgentSession[]> {
-  const db = await openDb();
+export async function listSessions(
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<AgentSession[]> {
+  const db = await openDb(prefix);
   const tx = db.transaction(STORE, 'readonly');
   const rows = await txResult(tx.objectStore(STORE).getAll() as IDBRequest<AgentSession[]>);
   await txDone(tx);
@@ -60,8 +62,11 @@ export async function listSessions(): Promise<AgentSession[]> {
   return rows.map(normalize).sort((a, b) => a.updatedAt - b.updatedAt);
 }
 
-export async function getSession(id: string): Promise<AgentSession | undefined> {
-  const db = await openDb();
+export async function getSession(
+  id: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<AgentSession | undefined> {
+  const db = await openDb(prefix);
   const tx = db.transaction(STORE, 'readonly');
   const row = await txResult(tx.objectStore(STORE).get(id) as IDBRequest<AgentSession | undefined>);
   await txDone(tx);
@@ -69,8 +74,11 @@ export async function getSession(id: string): Promise<AgentSession | undefined> 
   return row === undefined ? undefined : normalize(row);
 }
 
-export async function saveSession(session: AgentSession): Promise<void> {
-  const db = await openDb();
+export async function saveSession(
+  session: AgentSession,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<void> {
+  const db = await openDb(prefix);
   const tx = db.transaction(STORE, 'readwrite');
   tx.objectStore(STORE).put(session);
   await txDone(tx);
@@ -81,8 +89,11 @@ export async function saveSession(session: AgentSession): Promise<void> {
  * Delete a session and reparent its children to the deleted node's parent, so
  * forks survive their origin being removed.
  */
-export async function deleteSession(id: string): Promise<void> {
-  const db = await openDb();
+export async function deleteSession(
+  id: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<void> {
+  const db = await openDb(prefix);
   const tx = db.transaction(STORE, 'readwrite');
   const store = tx.objectStore(STORE);
   const all = await txResult(store.getAll() as IDBRequest<AgentSession[]>);
@@ -139,6 +150,7 @@ export async function forkSession(
   source: AgentSession,
   atIndex: number,
   options: ForkOptions,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
 ): Promise<AgentSession> {
   const now = Date.now();
   const clamped = Math.max(0, Math.min(atIndex, source.messages.length));
@@ -155,7 +167,7 @@ export async function forkSession(
     updatedAt: now,
     messages: source.messages.slice(0, clamped) as AgentMessage[],
   };
-  await saveSession(fork);
+  await saveSession(fork, prefix);
   return fork;
 }
 

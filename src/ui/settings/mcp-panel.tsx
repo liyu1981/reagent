@@ -1,12 +1,12 @@
 import { Check, Loader2, RefreshCw, Server } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
-import { useReAgentConfig } from '../../core/hooks';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useReAgent, useReAgentConfig } from '../../core/hooks';
 import { useToast, useTranslation } from '../../core/i18n';
 import {
   EXA_SERVER_ID,
   getExaApiKey,
+  getMcpManager,
   type McpServerStatus,
-  mcpManager,
   saveMcpServers,
   setExaApiKey,
   syncMcpServersWithTimeout,
@@ -20,20 +20,22 @@ import { Switch } from '../../primitives/switch';
 
 export function ReAgentMcpPanel() {
   const { config, update } = useReAgentConfig();
+  const { storagePrefix } = useReAgent();
   const { t } = useTranslation();
   const toast = useToast();
+  const mcp = useMemo(() => getMcpManager(storagePrefix), [storagePrefix]);
   const servers = config.mcp;
-  const [statuses, setStatuses] = useState<McpServerStatus[]>(() => mcpManager.getStatuses());
-  const [keyDraft, setKeyDraft] = useState(() => getExaApiKey());
+  const [statuses, setStatuses] = useState<McpServerStatus[]>(() => mcp.getStatuses());
+  const [keyDraft, setKeyDraft] = useState(() => getExaApiKey(storagePrefix));
   const [testing, setTesting] = useState(false);
 
-  useEffect(() => mcpManager.subscribe(() => setStatuses(mcpManager.getStatuses())), []);
+  useEffect(() => mcp.subscribe(() => setStatuses(mcp.getStatuses())), [mcp]);
 
   const persist = useCallback(
     (next: McpServerConfig[]) => {
       update({ mcp: next });
-      saveMcpServers(next);
-      setStatuses(mcpManager.getStatuses(next));
+      saveMcpServers(next, storagePrefix);
+      setStatuses(mcp.getStatuses(next));
     },
     [update],
   );
@@ -42,26 +44,26 @@ export function ReAgentMcpPanel() {
     async (id: string, enabled: boolean) => {
       persist(servers.map(server => (server.id === id ? { ...server, enabled } : server)));
       if (enabled) {
-        await syncMcpServersWithTimeout();
-        setStatuses(mcpManager.getStatuses());
+        await syncMcpServersWithTimeout(storagePrefix);
+        setStatuses(mcp.getStatuses());
       }
     },
     [persist, servers],
   );
 
   const handleSaveKey = useCallback(async () => {
-    setExaApiKey(keyDraft);
+    setExaApiKey(keyDraft, storagePrefix);
     toast.success(t('agent.mcpKeySaved'));
-    await mcpManager.reset();
-    await syncMcpServersWithTimeout();
-    setStatuses(mcpManager.getStatuses());
+    await mcp.reset();
+    await syncMcpServersWithTimeout(storagePrefix);
+    setStatuses(mcp.getStatuses());
   }, [keyDraft, t]);
 
   const handleTest = useCallback(async () => {
     setTesting(true);
-    await mcpManager.reset();
-    await syncMcpServersWithTimeout();
-    setStatuses(mcpManager.getStatuses());
+    await mcp.reset();
+    await syncMcpServersWithTimeout(storagePrefix);
+    setStatuses(mcp.getStatuses());
     setTesting(false);
   }, []);
 

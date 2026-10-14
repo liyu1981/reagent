@@ -72,8 +72,16 @@ site/                   Vite demo + documentation site (GitHub Pages)
   `useReAgentSession`, `useReAgentSessions`, `useReAgentRegistry`.
   `ui/` parts call `useReAgent()` and must render inside a `ReAgentProvider`
   (the `<ReAgent>` preset already does).
+- **Storage is namespaced by `storagePrefix`** (`core/storage.ts`; default
+  `agent`). Config, credentials, MCP keys and the conversation IndexedDB are all
+  keyed per prefix (`<prefix>.config`, `<prefix>.credential.<id>`,
+  `<prefix>-agent`), so several agents can run on one page. The default prefix
+  reproduces the historical keys and the `reagent-agent` database. Core stores
+  keep per-prefix registries; `<ReAgentProvider storagePrefix>` and
+  `useReAgentConfig()` thread it through, and the free functions take an optional
+  trailing prefix.
 - **Config** is one versioned `AgentConfig` snapshot in `localStorage`
-  (`agent.config`), read through a tiny external store
+  (`<prefix>.config`), read through a tiny external store
   (`getAgentConfig`/`updateAgentConfig`/`subscribeAgentConfig`). Legacy
   per-feature keys are migrated once at load. API keys are per-provider in
   `localStorage`; sessions are in IndexedDB (`reagent-agent`, v2).

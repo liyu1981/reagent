@@ -1,8 +1,9 @@
-import { useContext, useSyncExternalStore } from 'react';
+import { useCallback, useContext, useSyncExternalStore } from 'react';
 
 import { getAgentConfig, subscribeAgentConfig, updateAgentConfig } from './config';
 import { ReAgentContext, type ReAgentContextValue } from './reagent-provider';
-import type { AgentSession, AgentSessionNode } from './types';
+import { DEFAULT_STORAGE_PREFIX } from './storage';
+import type { AgentConfig, AgentSession, AgentSessionNode } from './types';
 
 export function useReAgent(): ReAgentContextValue {
   const context = useContext(ReAgentContext);
@@ -13,13 +14,26 @@ export function useReAgent(): ReAgentContextValue {
 }
 
 /**
- * Config is backed by the global `AgentConfig` store rather than the React
- * context, so settings panels can be reused on the `/settings` page (outside a
- * `<ReAgentProvider>`).
+ * Config is backed by the external `AgentConfig` store rather than React state,
+ * so settings panels can be reused on a `/settings` page outside a
+ * `<ReAgentProvider>`. Inside a provider it reads that provider's storage
+ * namespace; outside, it falls back to the default one.
  */
 export function useReAgentConfig() {
-  const config = useSyncExternalStore(subscribeAgentConfig, getAgentConfig);
-  return { config, update: updateAgentConfig };
+  const context = useContext(ReAgentContext);
+  const prefix = context?.storagePrefix ?? DEFAULT_STORAGE_PREFIX;
+
+  const subscribe = useCallback(
+    (listener: () => void) => subscribeAgentConfig(listener, prefix),
+    [prefix],
+  );
+  const read = useCallback(() => getAgentConfig(prefix), [prefix]);
+  const config = useSyncExternalStore(subscribe, read);
+  const update = useCallback(
+    (patch: Partial<AgentConfig>) => updateAgentConfig(patch, prefix),
+    [prefix],
+  );
+  return { config, update };
 }
 
 export function useReAgentSession(): {

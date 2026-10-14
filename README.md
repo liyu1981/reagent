@@ -104,6 +104,7 @@ Every host integration is optional.
 | `messages` / `translate` | copy overrides / translator | English | i18n. |
 | `extraTools` | `AgentTool<any>[]` | `[]` | Raw tools (e.g. MCP). |
 | `extraDescriptors` | `AgentToolDescriptor[]` | `[]` | Registry tools shown in the Tools panel. |
+| `storagePrefix` | `string` | `'agent'` | Namespace all persisted state; set per agent to run several on one page. |
 | `draft` / `editor` / `selection` | editor integration | — | Let the agent edit an open document. |
 | `onClose` / `onClearSelection` | callbacks | — | Header/selection hooks. |
 

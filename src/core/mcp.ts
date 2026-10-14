@@ -5,6 +5,7 @@ import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/
 import { type Tool, ToolListChangedNotificationSchema } from '@modelcontextprotocol/sdk/types.js';
 
 import { getAgentConfig, updateAgentConfig } from './config';
+import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
 import { EXA_SERVER_ID, type McpServerConfig } from './types';
 
 /**
@@ -19,30 +20,33 @@ import { EXA_SERVER_ID, type McpServerConfig } from './types';
 export type { McpServerConfig };
 export { EXA_SERVER_ID };
 
-const EXA_KEY_KEY = 'agent.mcp.exa.apiKey';
 const CONNECT_TIMEOUT_MS = 5000;
 
 /** Configured servers (empty until the host or user adds one). */
-export function listMcpServers(): McpServerConfig[] {
-  return getAgentConfig().mcp;
+export function listMcpServers(prefix: string = DEFAULT_STORAGE_PREFIX): McpServerConfig[] {
+  return getAgentConfig(prefix).mcp;
 }
 
-export function saveMcpServers(servers: McpServerConfig[]): void {
-  updateAgentConfig({ mcp: servers });
-  void mcpManager.reset();
+export function saveMcpServers(
+  servers: McpServerConfig[],
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): void {
+  updateAgentConfig({ mcp: servers }, prefix);
+  void getMcpManager(prefix).reset();
 }
 
-export function getExaApiKey(): string {
-  return localStorage.getItem(EXA_KEY_KEY) ?? '';
+export function getExaApiKey(prefix: string = DEFAULT_STORAGE_PREFIX): string {
+  return localStorage.getItem(storageKey(prefix, 'mcp.exa.apiKey')) ?? '';
 }
 
-export function setExaApiKey(key: string): void {
+export function setExaApiKey(key: string, prefix: string = DEFAULT_STORAGE_PREFIX): void {
+  const storageName = storageKey(prefix, 'mcp.exa.apiKey');
   const trimmed = key.trim();
 
   if (trimmed === '') {
-    localStorage.removeItem(EXA_KEY_KEY);
+    localStorage.removeItem(storageName);
   } else {
-    localStorage.setItem(EXA_KEY_KEY, trimmed);
+    localStorage.setItem(storageName, trimmed);
   }
 }
 
@@ -130,6 +134,8 @@ function normalizeInputSchema(schema: unknown): TSchema {
 }
 
 class McpManager {
+  constructor(private readonly prefix: string = DEFAULT_STORAGE_PREFIX) {}
+
   private readonly connections = new Map<string, Connection>();
   private readonly connecting = new Set<string>();
   private readonly listeners = new Set<() => void>();
@@ -170,7 +176,7 @@ class McpManager {
     return [...this.connections.values()].flatMap(connection => connection.tools);
   }
 
-  getStatuses(servers: McpServerConfig[] = listMcpServers()): McpServerStatus[] {
+  getStatuses(servers: McpServerConfig[] = listMcpServers(this.prefix)): McpServerStatus[] {
     return servers.map(config => {
       const connection = this.connections.get(config.id);
       return {
@@ -187,7 +193,7 @@ class McpManager {
   }
 
   /** Connect enabled servers, reconnect changed ones, drop disabled ones. */
-  async sync(servers: McpServerConfig[] = listMcpServers()): Promise<void> {
+  async sync(servers: McpServerConfig[] = listMcpServers(this.prefix)): Promise<void> {
     const enabled = servers.filter(server => server.enabled);
     const wanted = new Set(enabled.map(server => server.id));
 
@@ -243,7 +249,7 @@ class McpManager {
     const url = new URL(config.url);
 
     if (config.id === EXA_SERVER_ID) {
-      const key = getExaApiKey();
+      const key = getExaApiKey(this.prefix);
       if (key !== '') {
         url.searchParams.set('exaApiKey', key);
       }
@@ -325,12 +331,28 @@ class McpManager {
   }
 }
 
-export const mcpManager = new McpManager();
+const managers = new Map<string, McpManager>();
+
+/** The MCP manager for a storage prefix (one per namespace). */
+export function getMcpManager(prefix: string = DEFAULT_STORAGE_PREFIX): McpManager {
+  let manager = managers.get(prefix);
+  if (manager === undefined) {
+    manager = new McpManager(prefix);
+    managers.set(prefix, manager);
+  }
+  return manager;
+}
+
+/** Default-namespace manager (back-compat export). */
+export const mcpManager = getMcpManager();
 
 /** Resolve once `sync` settles or the timeout elapses, whichever is first. */
-export async function syncMcpServersWithTimeout(): Promise<void> {
+export async function syncMcpServersWithTimeout(
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Promise<void> {
+  const manager = getMcpManager(prefix);
   await Promise.race([
-    mcpManager.sync(listMcpServers()),
+    manager.sync(listMcpServers(prefix)),
     new Promise<void>(resolve => {
       setTimeout(resolve, CONNECT_TIMEOUT_MS);
     }),

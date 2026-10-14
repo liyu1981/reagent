@@ -67,6 +67,11 @@ export interface ReAgentProps {
   uploadFile?: (file: File) => Promise<string>;
   extraTools?: AgentTool<any>[];
   extraDescriptors?: AgentToolDescriptor[];
+  /**
+   * Namespace for persisted state (localStorage + the conversation IndexedDB).
+   * Give each agent on a page a different value to keep them independent.
+   */
+  storagePrefix?: string;
 }
 
 export type ReAgentSurface = 'glass' | 'solid';
@@ -107,6 +112,7 @@ export function ReAgent({
   uploadFile,
   extraTools,
   extraDescriptors,
+  storagePrefix,
 }: ReAgentProps) {
   return (
     <ReAgentProvider
@@ -123,6 +129,7 @@ export function ReAgent({
       uploadFile={uploadFile}
       extraTools={extraTools}
       extraDescriptors={extraDescriptors}
+      storagePrefix={storagePrefix}
     >
       <ReAgentChrome onClose={onClose} surface={surface} className={className} />
     </ReAgentProvider>

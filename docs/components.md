@@ -27,6 +27,7 @@ import { ReAgent, type ReAgentProps } from '@liyu1981/reagent';
 | `uploadFile` | `(file: File) => Promise<string>` | — | Persist a non-vision file; return markdown to insert. |
 | `extraTools` | `AgentTool<any>[]` | `[]` | Raw agent tools merged into the run (e.g. MCP). |
 | `extraDescriptors` | `AgentToolDescriptor[]` | `[]` | Tool descriptors shown in the Tools panel and built into the run. |
+| `storagePrefix` | `string` | `'agent'` | Namespace for all persisted state (localStorage + IndexedDB). See [Multiple agents & storage](./multiple-agents). |
 
 ### `ReAgentMarkdown`
 

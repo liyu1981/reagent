@@ -1,4 +1,5 @@
 import { getAgentConfig, updateAgentConfig } from './config';
+import { DEFAULT_STORAGE_PREFIX } from './storage';
 
 /**
  * User-editable system prompt for the in-editor agent.
@@ -9,8 +10,8 @@ import { getAgentConfig, updateAgentConfig } from './config';
  */
 
 /** The raw custom system prompt, or '' when the built-in one is in use. */
-export function getCustomSystemPrompt(): string {
-  const config = getAgentConfig();
+export function getCustomSystemPrompt(prefix: string = DEFAULT_STORAGE_PREFIX): string {
+  const config = getAgentConfig(prefix);
   return config.systemPrompt.mode === 'custom' ? config.systemPrompt.custom : '';
 }
 
@@ -18,16 +19,16 @@ export function getCustomSystemPrompt(): string {
  * Save a custom system prompt. Whitespace-only input clears the override and
  * restores the built-in prompt.
  */
-export function setCustomSystemPrompt(text: string): void {
+export function setCustomSystemPrompt(text: string, prefix: string = DEFAULT_STORAGE_PREFIX): void {
   if (text.trim() === '') {
-    clearCustomSystemPrompt();
+    clearCustomSystemPrompt(prefix);
     return;
   }
-  updateAgentConfig({ systemPrompt: { mode: 'custom', custom: text } });
+  updateAgentConfig({ systemPrompt: { mode: 'custom', custom: text } }, prefix);
 }
 
-export function clearCustomSystemPrompt(): void {
-  updateAgentConfig({ systemPrompt: { mode: 'default', custom: '' } });
+export function clearCustomSystemPrompt(prefix: string = DEFAULT_STORAGE_PREFIX): void {
+  updateAgentConfig({ systemPrompt: { mode: 'default', custom: '' } }, prefix);
 }
 
 /**
@@ -44,8 +45,12 @@ If your reply contains new or revised content for the open draft, you MUST pass 
  * both paths (the built-in default is usually already interpolated by i18n,
  * which is harmless).
  */
-export function resolveSystemPrompt(defaultPrompt: string, language: string): string {
-  const custom = getCustomSystemPrompt();
+export function resolveSystemPrompt(
+  defaultPrompt: string,
+  language: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): string {
+  const custom = getCustomSystemPrompt(prefix);
   if (custom.trim() === '') {
     return defaultPrompt;
   }

@@ -4,6 +4,7 @@ import hostIntegrations from '../../docs/host-integrations.md?raw';
 import installation from '../../docs/installation.md?raw';
 import introduction from '../../docs/introduction.md?raw';
 import models from '../../docs/models.md?raw';
+import multipleAgents from '../../docs/multiple-agents.md?raw';
 import quickStart from '../../docs/quick-start.md?raw';
 import sessions from '../../docs/sessions.md?raw';
 import styling from '../../docs/styling.md?raw';
@@ -81,6 +82,13 @@ export const DOCS: DocEntry[] = [
     group: 'Guides',
     summary: 'The conversation tree and IndexedDB storage.',
     content: sessions,
+  },
+  {
+    slug: 'multiple-agents',
+    title: 'Multiple agents & storage',
+    group: 'Guides',
+    summary: 'Run independent agents with a storage prefix.',
+    content: multipleAgents,
   },
   {
     slug: 'components',

@@ -183,6 +183,12 @@ export function Layout({
             >
               npm
             </a>
+            <a href="llms.txt" className="hover:text-foreground">
+              llms.txt
+            </a>
+            <a href="skill.md" className="hover:text-foreground">
+              skill.md
+            </a>
           </div>
         </div>
       </footer>

@@ -6,6 +6,7 @@ import {
 } from '@earendil-works/pi-agent-core';
 import type { EditorMutationBridge } from './editor-mutations';
 import { getModel, getModels } from './models';
+import { DEFAULT_STORAGE_PREFIX } from './storage';
 import { buildAgentTools } from './tools';
 import type { AgentToolDescriptor } from './types';
 
@@ -23,10 +24,13 @@ export interface AgentBuildOptions {
   extraDescriptors?: AgentToolDescriptor[];
   /** Registry ids of built-in tools the user switched off. */
   disabledToolIds?: string[];
+  /** Storage namespace for this agent. Defaults to the shared `agent` prefix. */
+  prefix?: string;
 }
 
 export function buildAgent(options: AgentBuildOptions): Agent {
-  const model = getModel(options.providerId, options.modelId);
+  const prefix = options.prefix ?? DEFAULT_STORAGE_PREFIX;
+  const model = getModel(options.providerId, options.modelId, prefix);
   if (model === undefined) {
     throw new Error(`Unknown model: ${options.providerId}/${options.modelId}`);
   }
@@ -40,13 +44,14 @@ export function buildAgent(options: AgentBuildOptions): Agent {
         extraTools: options.extraTools,
         extraDescriptors: options.extraDescriptors,
         disabledIds: options.disabledToolIds,
+        prefix,
       }),
       messages: options.messages ?? [],
     },
     // Resolve the registry lazily at call time: the model catalog can be
     // rebuilt (e.g. after changing the Ollama base URL), and the agent must
     // follow the current instance rather than a stale capture.
-    streamFn: (model, context, options) => getModels().streamSimple(model, context, options),
+    streamFn: (model, context, options) => getModels(prefix).streamSimple(model, context, options),
     toolExecution: 'parallel',
     sessionId: options.sessionId,
   });

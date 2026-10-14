@@ -1,7 +1,9 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
 import { type TSchema, Type } from '@earendil-works/pi-ai';
+import { getAgentConfig } from './config';
 import type { EditorMutationBridge } from './editor-mutations';
 import { buildUseSkillTool, enabledSkillDefinitions, USE_SKILL_TOOL_ID } from './skill-registry';
+import { DEFAULT_STORAGE_PREFIX } from './storage';
 import type { AgentToolBuildContext, AgentToolDescriptor, AgentToolGroup } from './types';
 
 function textBlocks(...texts: string[]) {
@@ -174,7 +176,7 @@ export const SKILL_TOOL_DESCRIPTOR: AgentToolDescriptor = {
     'Load the full instructions for one of the available skills by its exact name. Call this when a task matches a skill description, then follow the returned instructions.',
   group: 'skills',
   requiresEditor: false,
-  build: () => buildUseSkillTool() as AgentTool<any>,
+  build: ctx => buildUseSkillTool(ctx.prefix) as AgentTool<any>,
 };
 
 export interface BuildAgentToolsOptions {
@@ -183,6 +185,8 @@ export interface BuildAgentToolsOptions {
   /** Host-injected descriptors (shown in the tools panel and built into the run). */
   extraDescriptors?: AgentToolDescriptor[];
   disabledIds?: string[];
+  /** Storage prefix the skill registry should read from. */
+  prefix?: string;
 }
 
 /** Build the enabled tool instances from a descriptor list. */
@@ -190,7 +194,7 @@ export function buildToolsFromDescriptors(
   descriptors: AgentToolDescriptor[],
   options: BuildAgentToolsOptions = {},
 ): AgentTool<any>[] {
-  const { editor, disabledIds = [] } = options;
+  const { editor, disabledIds = [], prefix } = options;
   const disabled = new Set(disabledIds);
   const out: AgentTool<any>[] = [];
   for (const descriptor of descriptors) {
@@ -200,7 +204,7 @@ export function buildToolsFromDescriptors(
     if (descriptor.requiresEditor === true && editor === undefined) {
       continue;
     }
-    out.push(descriptor.build({ editor }));
+    out.push(descriptor.build({ editor, prefix }));
   }
   return out;
 }
@@ -213,22 +217,31 @@ export function buildToolsFromDescriptors(
 export function activeToolDescriptors(options: {
   editor?: EditorMutationBridge;
   extraDescriptors?: AgentToolDescriptor[];
+  hasSkills?: boolean;
 }): AgentToolDescriptor[] {
-  const { editor, extraDescriptors = [] } = options;
+  const { editor, extraDescriptors = [], hasSkills = false } = options;
   return [
     ...(editor !== undefined ? EDITOR_TOOLS : []),
-    ...(enabledSkillDefinitions().length > 0 ? [SKILL_TOOL_DESCRIPTOR] : []),
+    ...(hasSkills ? [SKILL_TOOL_DESCRIPTOR] : []),
     ...extraDescriptors,
   ];
 }
 
 /** The active descriptors plus any raw extra tools (e.g. MCP). */
 export function buildAgentTools(options: BuildAgentToolsOptions = {}): AgentTool<any>[] {
-  const { editor, extraTools = [], extraDescriptors = [], disabledIds } = options;
+  const {
+    editor,
+    extraTools = [],
+    extraDescriptors = [],
+    disabledIds,
+    prefix = DEFAULT_STORAGE_PREFIX,
+  } = options;
+  const hasSkills = enabledSkillDefinitions(getAgentConfig(prefix)).length > 0;
   return [
-    ...buildToolsFromDescriptors(activeToolDescriptors({ editor, extraDescriptors }), {
+    ...buildToolsFromDescriptors(activeToolDescriptors({ editor, extraDescriptors, hasSkills }), {
       editor,
       disabledIds,
+      prefix,
     }),
     ...extraTools,
   ];

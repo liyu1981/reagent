@@ -1,5 +1,6 @@
 import type { ThinkingLevel } from '@earendil-works/pi-agent-core';
 
+import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
 import type { AgentConfig, AgentSkillConfig, McpServerConfig } from './types';
 import { DEFAULT_OLLAMA_BASE_URL } from './types';
 
@@ -7,13 +8,12 @@ import { DEFAULT_OLLAMA_BASE_URL } from './types';
  * The single source of truth for every agent knob that used to be scattered
  * across `agent.lastModel`, `agent.ollama.baseUrl`, `agent.skills`,
  * `agent.systemPrompt.custom`, `agent.mcp.servers`, … A versioned snapshot is
- * persisted under one localStorage key and exposed through a tiny external
- * store so React and the agent runtime share it.
+ * persisted under one namespaced localStorage key and exposed through a tiny
+ * external store so React and the agent runtime share it.
+ *
+ * State is kept per storage prefix, so several agents can coexist on one page.
  */
 
-const CONFIG_KEY = 'agent.config';
-
-// No MCP servers are configured by default — MCP is entirely opt-in.
 export const DEFAULT_MCP_SERVERS: McpServerConfig[] = [];
 
 export function defaultAgentConfig(): AgentConfig {
@@ -93,37 +93,39 @@ function normalize(raw: Partial<AgentConfig> | undefined): AgentConfig {
 }
 
 /** Build a config from the legacy per-feature localStorage keys. */
-function migrateLegacy(): AgentConfig {
+function migrateLegacy(prefix: string): AgentConfig {
   const config = defaultAgentConfig();
 
-  const lastModel = readJson<{ providerId: string; modelId: string }>('agent.lastModel');
+  const lastModel = readJson<{ providerId: string; modelId: string }>(
+    storageKey(prefix, 'lastModel'),
+  );
   if (lastModel !== undefined && typeof lastModel.providerId === 'string') {
     config.model = lastModel;
   }
 
-  const ollamaBase = localStorage.getItem('agent.ollama.baseUrl');
+  const ollamaBase = localStorage.getItem(storageKey(prefix, 'ollama.baseUrl'));
   if (ollamaBase !== null) {
     config.providers.ollama = { ...config.providers.ollama, baseUrl: ollamaBase };
   }
 
-  const verified = readJson<string[]>('agent.verified.providers');
+  const verified = readJson<string[]>(storageKey(prefix, 'verified.providers'));
   if (Array.isArray(verified)) {
     for (const id of verified) {
       config.providers[id] = { ...config.providers[id], verified: true };
     }
   }
 
-  const skills = readJson<unknown>('agent.skills');
+  const skills = readJson<unknown>(storageKey(prefix, 'skills'));
   if (Array.isArray(skills)) {
     config.skills = skills.filter(isSkillConfig);
   }
 
-  const customPrompt = localStorage.getItem('agent.systemPrompt.custom');
+  const customPrompt = localStorage.getItem(storageKey(prefix, 'systemPrompt.custom'));
   if (customPrompt !== null && customPrompt.trim() !== '') {
     config.systemPrompt = { mode: 'custom', custom: customPrompt };
   }
 
-  const servers = readJson<McpServerConfig[]>('agent.mcp.servers');
+  const servers = readJson<McpServerConfig[]>(storageKey(prefix, 'mcp.servers'));
   if (Array.isArray(servers) && servers.length > 0) {
     config.mcp = servers;
   }
@@ -131,48 +133,69 @@ function migrateLegacy(): AgentConfig {
   return config;
 }
 
-function loadAgentConfig(): AgentConfig {
-  const stored = readJson<AgentConfig>(CONFIG_KEY);
+const caches = new Map<string, AgentConfig>();
+const listenerSets = new Map<string, Set<() => void>>();
+
+function listenersFor(prefix: string): Set<() => void> {
+  let set = listenerSets.get(prefix);
+  if (set === undefined) {
+    set = new Set();
+    listenerSets.set(prefix, set);
+  }
+  return set;
+}
+
+function loadAgentConfig(prefix: string): AgentConfig {
+  const stored = readJson<AgentConfig>(storageKey(prefix, 'config'));
   if (stored !== undefined) {
     return normalize(stored);
   }
-  const migrated = migrateLegacy();
-  persistAgentConfig(migrated);
+  const migrated = migrateLegacy(prefix);
+  persistAgentConfig(prefix, migrated);
   return migrated;
 }
 
-function persistAgentConfig(config: AgentConfig): void {
+function persistAgentConfig(prefix: string, config: AgentConfig): void {
   try {
-    localStorage.setItem(CONFIG_KEY, JSON.stringify(config));
+    localStorage.setItem(storageKey(prefix, 'config'), JSON.stringify(config));
   } catch {
     // quota / privacy mode — keep the in-memory copy
   }
 }
 
-let cache: AgentConfig | null = null;
-const listeners = new Set<() => void>();
-
-export function getAgentConfig(): AgentConfig {
-  if (cache === null) {
-    cache = loadAgentConfig();
+export function getAgentConfig(prefix: string = DEFAULT_STORAGE_PREFIX): AgentConfig {
+  let cache = caches.get(prefix);
+  if (cache === undefined) {
+    cache = loadAgentConfig(prefix);
+    caches.set(prefix, cache);
   }
   return cache;
 }
 
-export function setAgentConfig(next: AgentConfig): AgentConfig {
-  cache = next;
-  persistAgentConfig(next);
-  for (const listener of listeners) {
+export function setAgentConfig(
+  next: AgentConfig,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): AgentConfig {
+  caches.set(prefix, next);
+  persistAgentConfig(prefix, next);
+  for (const listener of listenersFor(prefix)) {
     listener();
   }
-  return cache;
+  return next;
 }
 
-export function updateAgentConfig(patch: Partial<AgentConfig>): AgentConfig {
-  return setAgentConfig({ ...getAgentConfig(), ...patch });
+export function updateAgentConfig(
+  patch: Partial<AgentConfig>,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): AgentConfig {
+  return setAgentConfig({ ...getAgentConfig(prefix), ...patch }, prefix);
 }
 
-export function subscribeAgentConfig(listener: () => void): () => void {
+export function subscribeAgentConfig(
+  listener: () => void,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): () => void {
+  const listeners = listenersFor(prefix);
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
