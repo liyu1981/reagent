@@ -13,11 +13,6 @@ function deleteDatabase(name: string): Promise<void> {
   });
 }
 
-/** Forget every stored conversation (config and keys are kept). */
-export async function clearConversations(): Promise<void> {
-  await deleteDatabase(SESSIONS_DB);
-}
-
 /** Wipe all agent localStorage keys and conversations, then reload. */
 export async function clearAgentStorage(): Promise<void> {
   for (const key of Object.keys(localStorage)) {
