@@ -19,6 +19,7 @@ export {
 } from './core/mcp';
 export * from './core/messages';
 export {
+  CLOUD_PROVIDERS_ENABLED,
   clearApiKey,
   getModel,
   getModels,

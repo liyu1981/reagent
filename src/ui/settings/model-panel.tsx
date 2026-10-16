@@ -279,11 +279,17 @@ export function ReAgentModelPanel() {
           {t('agent.cloudProviders')}
         </p>
         <div className="space-y-2 rounded-xl border border-border/50 p-3">
-          <ProviderCombobox
-            providers={cloudProviders}
-            value={selectedProvider}
-            onChange={setSelectedProvider}
-          />
+          {cloudProviders.length === 0 && (
+            <p className="text-xs text-muted-foreground">{t('agent.cloudProvidersDisabled')}</p>
+          )}
+
+          {cloudProviders.length > 0 && (
+            <ProviderCombobox
+              providers={cloudProviders}
+              value={selectedProvider}
+              onChange={setSelectedProvider}
+            />
+          )}
 
           {selectedProvider !== '' && (
             <div className="space-y-1.5">

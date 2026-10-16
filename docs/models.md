@@ -3,10 +3,30 @@
 ReAgent wraps `pi-ai`'s model registry and adds browser storage plus a
 verification step.
 
+## Browser CORS limitation (cloud providers disabled)
+
+ReAgent runs the agent loop **in the browser**, so it calls providers directly
+from the page. That is fine for a local endpoint, but cloud gateways are a
+problem:
+
+- A CORS preflight can reject SDK headers (`x-stainless-*`, …).
+- Worse, most gateways **omit `Access-Control-Allow-Origin` on error
+  responses**. When a request fails (bad key, unknown model, rate limit), the
+  browser reports only an opaque *"No 'Access-Control-Allow-Origin' header"*
+  error and hides the real status/body — impossible to diagnose or handle from
+  client-side code.
+
+Because of this, **all cloud providers are temporarily disabled** and will
+return once requests can be routed through a backend/proxy. The switch is
+`CLOUD_PROVIDERS_ENABLED` (currently `false`). Until then the only usable
+provider is the **Custom Local LLM** — any OpenAI-compatible endpoint (Ollama,
+LM Studio, vLLM, …) the browser can reach.
+
 ## Providers
 
-ReAgent registers **every provider `pi-ai` ships** (via `builtinProviders()`),
-plus one custom OpenAI-compatible endpoint. Common API-key providers include:
+When cloud providers are enabled, ReAgent registers **every provider `pi-ai`
+ships** (via `builtinProviders()`), plus one custom OpenAI-compatible endpoint.
+Common API-key providers include:
 
 | Provider id | Notes |
 | ----------- | ----- |

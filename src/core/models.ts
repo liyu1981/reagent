@@ -295,15 +295,30 @@ export const UNSUPPORTED_PROVIDER_IDS: ReadonlySet<string> = new Set([
   'minimax-cn',
 ]);
 
+/**
+ * Cloud providers are temporarily disabled.
+ *
+ * ReAgent calls providers directly from the browser, but most gateways omit
+ * `Access-Control-Allow-Origin` on error responses (and some providers expose
+ * no CORS at all), so failures surface as opaque CORS errors with the real
+ * reason hidden — impossible to diagnose or handle client-side. They will
+ * come back behind a backend/proxy path. The custom OpenAI-compatible endpoint
+ * (Ollama, LM Studio, vLLM, …) is unaffected and remains available.
+ *
+ * Flip this to `true` (and the model-panel note) once a backend is in place.
+ */
+export const CLOUD_PROVIDERS_ENABLED = false;
+
 function buildModels(prefix: string): MutableModels {
   const models = createModels({ credentials: credentialStore(prefix) });
-  // Every provider pi-ai ships (minus the browser-incompatible ones), plus our
-  // keyless OpenAI-compatible endpoint.
-  for (const provider of builtinProviders()) {
-    if (UNSUPPORTED_PROVIDER_IDS.has(provider.id)) {
-      continue;
+  if (CLOUD_PROVIDERS_ENABLED) {
+    // Every provider pi-ai ships, minus the ones we know are browser-incompatible.
+    for (const provider of builtinProviders()) {
+      if (UNSUPPORTED_PROVIDER_IDS.has(provider.id)) {
+        continue;
+      }
+      models.setProvider(provider);
     }
-    models.setProvider(provider);
   }
   models.setProvider(buildOllamaProvider(getOllamaBaseUrl(prefix)));
   return models;

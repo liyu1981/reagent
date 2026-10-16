@@ -21,6 +21,8 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.chatPlaceholder': 'Ask the agent…',
   'agent.clearKey': 'Clear key',
   'agent.cloudProviders': 'Cloud providers',
+  'agent.cloudProvidersDisabled':
+    'Cloud providers are temporarily unavailable. Browser requests to AI gateways are blocked by CORS, so only the custom local/OpenAI-compatible endpoint can be used until backend support lands.',
   'agent.clearSelection': 'Clear selection',
   'agent.close': 'Close',
   'agent.connected': 'Connected · {{model}}',

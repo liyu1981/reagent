@@ -20,14 +20,16 @@ model is verified yet.
 
 ## Configure a model
 
-ReAgent never asks for a key on your behalf. The built-in settings view does:
+> **Cloud providers are temporarily disabled** — calling AI gateways straight
+> from the browser makes their errors opaque (missing CORS headers). See
+> [Models & providers](./models). For now, use a local OpenAI-compatible
+> endpoint.
 
 1. Open the **gear** icon in the header.
 2. Pick the **Model** tab.
-3. Paste a provider API key (OpenAI, Anthropic, OpenRouter, DeepSeek, Groq, …)
-   or set the Ollama base URL for a local, keyless model.
-4. Press **Test**. Once verified, the provider's models appear in the model
-   picker in the composer.
+3. Under **Custom Local LLM**, set the base URL of your OpenAI-compatible
+   server — e.g. `http://localhost:11434` for Ollama — and press **Save**.
+4. Press **Test**. Once verified, the model appears in the composer's picker.
 
 Keys are stored in `localStorage` and sent directly from the browser to the
 provider.

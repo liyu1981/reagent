@@ -67,9 +67,14 @@ export function AgentPanel() {
 ```
 
 On first load ReAgent opens a session and points the user at
-**Settings → Model**. The user pastes a provider key (or a local Ollama URL)
-and clicks **Test**. Keys live in `localStorage` and go straight to the
-provider.
+**Settings → Model**.
+
+> **Cloud providers are temporarily disabled.** Calling AI gateways directly
+> from the browser makes their errors opaque (they omit CORS headers on error
+> responses). Until a backend/proxy path exists, the only provider is
+> **Custom Local LLM**: set the base URL of an OpenAI-compatible server — e.g.
+> `http://localhost:11434` for Ollama — and click **Test**. Keys live in
+> `localStorage` and go straight to the provider.
 
 ## 4. Common props
 
