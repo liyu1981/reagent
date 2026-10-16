@@ -69,6 +69,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.newChat': 'New chat',
   'agent.noKeyNeeded': 'no key needed',
   'agent.noMessages': 'No messages yet.',
+  'agent.noModelsFound': 'No models found.',
   'agent.noModelsHint':
     'No verified model yet. Configure and test a connection in Settings → Agent to start chatting.',
   'agent.noProvidersFound': 'No providers found.',
@@ -82,6 +83,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.removeAttachment': 'Remove attachment',
   'agent.save': 'Save',
   'agent.saveKey': 'Save key',
+  'agent.searchModels': 'Search models…',
   'agent.searchProviders': 'Search providers…',
   'agent.selectModelPlaceholder': 'Select a model…',
   'agent.selectProviderPlaceholder': 'Select a provider…',

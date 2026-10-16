@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import type { ComponentProps, KeyboardEvent } from 'react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
 import { cn } from '../lib/utils';
@@ -26,6 +26,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
 } from '../primitives/dropdown-menu';
+import { Input } from '../primitives/input';
 import { Popover, PopoverContent, PopoverTrigger } from '../primitives/popover';
 
 const THINKING_LEVELS: ThinkingLevel[] = ['off', 'low', 'medium', 'high'];
@@ -284,8 +285,36 @@ export function ReAgentModelPicker({ className, ...props }: ComponentProps<typeo
   const { models, activeSession, activeModel, changeModel } = useReAgent();
   const { t } = useTranslation();
   const visionEnabled = activeModel?.input.includes('image') ?? false;
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+
+  const needle = query.trim().toLowerCase();
+  const filtered = useMemo(() => {
+    if (needle === '') {
+      return models;
+    }
+    return models.filter(option =>
+      [option.model.name, option.model.id, option.providerName, option.provider].some(value =>
+        value.toLowerCase().includes(needle),
+      ),
+    );
+  }, [models, needle]);
+
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+  };
+
   return (
-    <Popover>
+    <Popover
+      open={open}
+      onOpenChange={next => {
+        setOpen(next);
+        if (!next) {
+          setQuery('');
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -311,9 +340,29 @@ export function ReAgentModelPicker({ className, ...props }: ComponentProps<typeo
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" side="top" className="w-64 p-1">
+      <PopoverContent align="end" side="top" className="w-72 gap-1 p-1">
+        <Input
+          autoFocus
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+          onKeyDown={event => {
+            if (event.key === 'Enter' && filtered.length > 0) {
+              event.preventDefault();
+              changeModel(filtered[0].provider, filtered[0].model.id);
+              close();
+            }
+          }}
+          placeholder={t('agent.searchModels')}
+          aria-label={t('agent.searchModels')}
+          className="h-8"
+        />
         <div className="thin-scrollbar max-h-56 overflow-y-auto">
-          {models.map(option => {
+          {filtered.length === 0 && (
+            <p className="px-2 py-3 text-center text-xs text-muted-foreground">
+              {t('agent.noModelsFound')}
+            </p>
+          )}
+          {filtered.map(option => {
             const selected =
               option.provider === activeSession?.providerId &&
               option.model.id === activeSession.modelId;
@@ -321,7 +370,10 @@ export function ReAgentModelPicker({ className, ...props }: ComponentProps<typeo
               <button
                 key={`${option.provider}::${option.model.id}`}
                 type="button"
-                onClick={() => changeModel(option.provider, option.model.id)}
+                onClick={() => {
+                  changeModel(option.provider, option.model.id);
+                  close();
+                }}
                 className="flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-left text-sm transition-colors hover:bg-muted"
               >
                 <Check className={cn('size-3.5 shrink-0', !selected && 'opacity-0')} />
