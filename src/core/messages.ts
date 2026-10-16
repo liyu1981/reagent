@@ -146,6 +146,8 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.tagReasoning': 'reasoning',
   'agent.tagVision': 'vision',
   'agent.testConnection': 'Test',
+  'agent.testCorsFailed':
+    'The provider blocked the browser request before granting CORS access, so the real reason is hidden. Check the API key and that the model is available on this endpoint.',
   'agent.testFailed': 'Connection failed: {{detail}}',
   'agent.testNoModel': 'No model available for this provider.',
   'agent.testNotConfigured': 'No API key configured for this provider.',

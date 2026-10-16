@@ -95,11 +95,13 @@ function sanitizeHeaders(
   }
 
   if (profile?.bearer === true) {
+    // The gateway accepts either header, so send both: the Anthropic client's
+    // `x-api-key` stays for the SDK-style path, and `Authorization: Bearer`
+    // covers gateways/tokens that only accept the Bearer form.
     const key = next.get('x-api-key');
     if (key !== null && next.get('authorization') === null) {
       next.set('authorization', `Bearer ${key}`);
     }
-    next.delete('x-api-key');
   }
 
   return next;

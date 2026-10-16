@@ -193,7 +193,11 @@ export function ReAgentModelPanel() {
           ? t('agent.testNotConfigured')
           : code === 'no_model'
             ? t('agent.testNoModel')
-            : t('agent.testFailed', { detail: String(err instanceof Error ? err.message : err) });
+            : /failed to fetch|networkerror|load failed|fetch failed/i.test(code)
+              ? t('agent.testCorsFailed')
+              : t('agent.testFailed', {
+                  detail: String(err instanceof Error ? err.message : err),
+                });
       setStatus(prev => ({ ...prev, [providerId]: { ok: false, message } }));
     } finally {
       setTesting(prev => ({ ...prev, [providerId]: false }));

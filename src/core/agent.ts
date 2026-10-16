@@ -11,6 +11,13 @@ import { DEFAULT_STORAGE_PREFIX } from './storage';
 import { buildAgentTools } from './tools';
 import type { AgentToolDescriptor } from './types';
 
+/**
+ * Upper bound for requested output tokens. Some provider catalogs overstate
+ * `maxTokens` (the Vercel Gateway rejects values above 131072 with a 400), so
+ * requests stay under a bound no provider exceeds anyway.
+ */
+const MAX_OUTPUT_TOKENS = 131_072;
+
 export interface AgentBuildOptions {
   providerId: string;
   modelId: string;
@@ -55,6 +62,11 @@ export function buildAgent(options: AgentBuildOptions): Agent {
     streamFn: (model, context, options) =>
       getModels(prefix).streamSimple(model, context, {
         ...options,
+        // pi-ai enables extended thinking whenever a thinking level is set,
+        // even for models that do not reason — which some providers/gateways
+        // reject with a 400. Only ask for it when the model supports it.
+        reasoning: model.reasoning === true ? options?.reasoning : undefined,
+        maxTokens: Math.min(options?.maxTokens ?? model.maxTokens, MAX_OUTPUT_TOKENS),
         fetch: browserSafeFetch(options?.fetch, model.provider),
       }),
     toolExecution: 'parallel',
