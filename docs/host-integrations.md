@@ -109,4 +109,19 @@ The built-in editor tools (`get_content`, `update_content`, `get_selection`,
 available while an editor is provided. Pass the open document as `draft` so the
 agent can reason about it.
 
+## Deploys and stale chunks
+
+ReAgent (through `pi-ai`) loads provider API adapters with dynamic `import()`,
+so your bundler splits them into hashed chunks. When you deploy a new build
+while a user still has the old page open, a later dynamic import can 404 with
+"Failed to fetch dynamically imported module". Recover by reloading once when
+Vite reports a preload error:
+
+```ts
+window.addEventListener('vite:preloadError', () => window.location.reload());
+```
+
+Add a small time guard so a genuinely missing asset doesn't reload in a loop.
+The demo site does exactly this in `site/src/main.tsx`.
+
 Next: [Models & providers](./models) →
