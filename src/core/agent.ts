@@ -5,6 +5,7 @@ import {
   type ThinkingLevel,
 } from '@earendil-works/pi-agent-core';
 import type { EditorMutationBridge } from './editor-mutations';
+import { browserSafeFetch } from './fetch';
 import { getModel, getModels } from './models';
 import { DEFAULT_STORAGE_PREFIX } from './storage';
 import { buildAgentTools } from './tools';
@@ -51,7 +52,11 @@ export function buildAgent(options: AgentBuildOptions): Agent {
     // Resolve the registry lazily at call time: the model catalog can be
     // rebuilt (e.g. after changing the Ollama base URL), and the agent must
     // follow the current instance rather than a stale capture.
-    streamFn: (model, context, options) => getModels(prefix).streamSimple(model, context, options),
+    streamFn: (model, context, options) =>
+      getModels(prefix).streamSimple(model, context, {
+        ...options,
+        fetch: browserSafeFetch(options?.fetch),
+      }),
     toolExecution: 'parallel',
     sessionId: options.sessionId,
   });

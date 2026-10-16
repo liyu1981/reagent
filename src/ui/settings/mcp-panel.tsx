@@ -113,7 +113,9 @@ export function ReAgentMcpPanel() {
               </span>
             </div>
 
-            <p className="font-mono text-xs break-all text-muted-foreground">{server.url}</p>
+            <p className="truncate font-mono text-xs text-muted-foreground" title={server.url}>
+              {server.url}
+            </p>
 
             {isExa && (
               <div className="space-y-1.5">

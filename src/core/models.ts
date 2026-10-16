@@ -14,6 +14,7 @@ import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completio
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
 
 import { getAgentConfig, updateAgentConfig } from './config';
+import { browserSafeFetch } from './fetch';
 import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
 import { DEFAULT_OLLAMA_BASE_URL, OLLAMA_PROVIDER_ID } from './types';
 
@@ -418,9 +419,11 @@ export async function testConnection(
   if (model === undefined) {
     throw new Error('no_model');
   }
-  const response = await registry.completeSimple(model, {
-    messages: [{ role: 'user', content: 'Reply with exactly: ok', timestamp: Date.now() }],
-  });
+  const response = await registry.completeSimple(
+    model,
+    { messages: [{ role: 'user', content: 'Reply with exactly: ok', timestamp: Date.now() }] },
+    { fetch: browserSafeFetch() },
+  );
   if (response.stopReason === 'error' || response.stopReason === 'aborted') {
     throw new Error(response.errorMessage ?? `request_failed_${response.stopReason}`);
   }
