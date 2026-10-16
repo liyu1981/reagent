@@ -280,10 +280,29 @@ function buildOllamaProvider(baseUrl: string) {
   });
 }
 
+/**
+ * Providers we deliberately do not register: they cannot be reached from the
+ * browser (no usable CORS for direct requests), so offering them would only
+ * produce confusing failures. See `docs/models.md`.
+ *
+ * - `fireworks`   — `/inference/v1/messages` returns no CORS headers.
+ * - `minimax`     — preflight rejects the headers the Anthropic client sends.
+ * - `minimax-cn`  — same as `minimax`.
+ */
+export const UNSUPPORTED_PROVIDER_IDS: ReadonlySet<string> = new Set([
+  'fireworks',
+  'minimax',
+  'minimax-cn',
+]);
+
 function buildModels(prefix: string): MutableModels {
   const models = createModels({ credentials: credentialStore(prefix) });
-  // Every provider pi-ai ships, plus our keyless OpenAI-compatible endpoint.
+  // Every provider pi-ai ships (minus the browser-incompatible ones), plus our
+  // keyless OpenAI-compatible endpoint.
   for (const provider of builtinProviders()) {
+    if (UNSUPPORTED_PROVIDER_IDS.has(provider.id)) {
+      continue;
+    }
     models.setProvider(provider);
   }
   models.setProvider(buildOllamaProvider(getOllamaBaseUrl(prefix)));
@@ -422,7 +441,7 @@ export async function testConnection(
   const response = await registry.completeSimple(
     model,
     { messages: [{ role: 'user', content: 'Reply with exactly: ok', timestamp: Date.now() }] },
-    { fetch: browserSafeFetch() },
+    { fetch: browserSafeFetch(undefined, providerId) },
   );
   if (response.stopReason === 'error' || response.stopReason === 'aborted') {
     throw new Error(response.errorMessage ?? `request_failed_${response.stopReason}`);

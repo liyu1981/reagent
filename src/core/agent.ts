@@ -55,7 +55,7 @@ export function buildAgent(options: AgentBuildOptions): Agent {
     streamFn: (model, context, options) =>
       getModels(prefix).streamSimple(model, context, {
         ...options,
-        fetch: browserSafeFetch(options?.fetch),
+        fetch: browserSafeFetch(options?.fetch, model.provider),
       }),
     toolExecution: 'parallel',
     sessionId: options.sessionId,

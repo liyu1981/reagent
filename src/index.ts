@@ -31,6 +31,7 @@ export {
   saveApiKey,
   setOllamaBaseUrl,
   testConnection,
+  UNSUPPORTED_PROVIDER_IDS,
 } from './core/models';
 export * from './core/prompt';
 export * from './core/reagent-provider';
