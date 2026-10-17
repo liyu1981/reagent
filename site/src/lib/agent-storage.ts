@@ -2,7 +2,7 @@ const SESSIONS_DB = 'reagent-agent';
 const MODE_KEY = 'reagent-demo.mode';
 const RESET_FLAG = 'reagent-demo.reset';
 
-export type DemoMode = 'vanilla' | 'batteries';
+export type DemoMode = 'vanilla' | 'batteries' | 'webmcp';
 
 function deleteDatabase(name: string): Promise<void> {
   return new Promise(resolve => {
@@ -26,7 +26,8 @@ export async function clearAgentStorage(): Promise<void> {
 
 /** The demo tab to show after a reload. */
 export function readDemoMode(): DemoMode {
-  return localStorage.getItem(MODE_KEY) === 'batteries' ? 'batteries' : 'vanilla';
+  const stored = localStorage.getItem(MODE_KEY);
+  return stored === 'batteries' || stored === 'webmcp' ? stored : 'vanilla';
 }
 
 export function writeDemoMode(mode: DemoMode): void {

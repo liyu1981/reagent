@@ -31,6 +31,8 @@ and `pi-ai`; your keys and conversations stay on the device.
   OpenAI-compatible endpoint such as Ollama, LM Studio or vLLM. Other cloud
   gateways are disabled until verified — see
   [browser support](https://liyu1981.github.io/reagent/#/docs/browser-support).
+- **WebMCP aware.** If the page exposes tools through `document.modelContext`,
+  ReAgent detects them and hands them to the model automatically.
 - **Composable and headless.** Use the styled preset, or compose
   `ReAgentProvider` with the exported UI parts and hooks.
 - **Themeable.** Tailwind v4 utilities with zero-specificity design tokens.

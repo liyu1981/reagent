@@ -56,6 +56,7 @@ import type {
   AgentToolDescriptor,
   ToolChip,
 } from './types';
+import { hasWebMcp, listWebMcpTools, subscribeWebMcp } from './webmcp';
 
 export interface ModelOption {
   provider: string;
@@ -117,6 +118,8 @@ export interface ReAgentContextValue {
 
   toolLabels: Map<string, string>;
   tools: AgentToolDescriptor[];
+  /** WebMCP tools the current page exposes (empty when unavailable). */
+  webmcp: { available: boolean; toolCount: number };
 
   t: ReAgentTranslate;
   language: string;
@@ -213,6 +216,7 @@ export function ReAgentProvider({
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [mcpTools, setMcpTools] = useState<AgentTool<any>[]>([]);
+  const [webmcpTools, setWebmcpTools] = useState<AgentTool<any>[]>([]);
   const [exaKeyPrompt, setExaKeyPrompt] = useState(false);
   const [attachments, setAttachments] = useState<AgentAttachment[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -226,6 +230,7 @@ export function ReAgentProvider({
   const draftRef = useRef(draft ?? null);
   const editorRef = useRef(editor);
   const extraToolsRef = useRef(extraTools);
+  const webmcpToolsRef = useRef<AgentTool<any>[]>([]);
   const extraDescriptorsRef = useRef(extraDescriptors);
   const configRef = useRef(config);
   const contentEditedRef = useRef(false);
@@ -251,24 +256,53 @@ export function ReAgentProvider({
     selectionRef.current = selection;
   }, [selection]);
 
+  // Rebuild the live agent's tool set from the current MCP + WebMCP + host tools.
+  const rebuildAgentTools = useCallback(() => {
+    const agent = agentRef.current;
+    const active = latestRef.current;
+    if (agent === null || active === null || agent.state.isStreaming) {
+      return;
+    }
+    agent.state.tools = buildAgentTools({
+      editor: editorRef.current ?? undefined,
+      extraTools: [...mcp.getTools(), ...webmcpToolsRef.current, ...(extraToolsRef.current ?? [])],
+      extraDescriptors: extraDescriptorsRef.current ?? [],
+      disabledIds: configRef.current.toolsDisabled,
+      prefix,
+    });
+  }, [mcp, prefix]);
+
   useEffect(() => {
     setMcpTools(mcp.getTools());
     return mcp.subscribe(() => {
-      const tools = mcp.getTools();
-      setMcpTools(tools);
-      const agent = agentRef.current;
-      const active = latestRef.current;
-      if (agent !== null && active !== null && !agent.state.isStreaming) {
-        agent.state.tools = buildAgentTools({
-          editor: editorRef.current ?? undefined,
-          extraTools: [...tools, ...(extraToolsRef.current ?? [])],
-          extraDescriptors: extraDescriptorsRef.current ?? [],
-          disabledIds: configRef.current.toolsDisabled,
-          prefix,
-        });
-      }
+      setMcpTools(mcp.getTools());
+      rebuildAgentTools();
     });
-  }, [mcp, prefix]);
+  }, [mcp, rebuildAgentTools]);
+
+  // Auto-detect the page's WebMCP tools and keep them in sync.
+  useEffect(() => {
+    if (!hasWebMcp()) {
+      return;
+    }
+    let cancelled = false;
+    const refresh = () => {
+      void listWebMcpTools().then(tools => {
+        if (cancelled) {
+          return;
+        }
+        webmcpToolsRef.current = tools;
+        setWebmcpTools(tools);
+        rebuildAgentTools();
+      });
+    };
+    refresh();
+    const unsubscribe = subscribeWebMcp(refresh);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, [rebuildAgentTools]);
 
   useEffect(
     () =>
@@ -305,8 +339,11 @@ export function ReAgentProvider({
     for (const tool of mcpTools) {
       map.set(tool.name, tool.label);
     }
+    for (const tool of webmcpTools) {
+      map.set(tool.name, tool.label);
+    }
     return map;
-  }, [mcpTools, config, prefix]);
+  }, [mcpTools, webmcpTools, config, prefix]);
 
   const persistSession = useCallback(async (sessionNow: AgentSession, messages: AgentMessage[]) => {
     const updated: AgentSession = { ...sessionNow, messages, updatedAt: Date.now() };
@@ -463,7 +500,11 @@ export function ReAgentProvider({
       agentRef.current?.abort();
       await syncMcpServersWithTimeout(prefix);
 
-      const extra = [...mcp.getTools(), ...(extraToolsRef.current ?? [])];
+      const extra = [
+        ...mcp.getTools(),
+        ...webmcpToolsRef.current,
+        ...(extraToolsRef.current ?? []),
+      ];
       try {
         const instance = buildAgent({
           providerId: sessionNow.providerId,
@@ -927,6 +968,7 @@ export function ReAgentProvider({
     setExaKeyPrompt,
     saveExaKey,
     toolLabels,
+    webmcp: { available: hasWebMcp(), toolCount: webmcpTools.length },
     tools: listToolDescriptors(extraDescriptorsRef.current ?? [], {
       hasEditor: editor !== undefined && editor !== null,
       hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,

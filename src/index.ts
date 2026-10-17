@@ -40,6 +40,7 @@ export * from './core/skill-registry';
 export * from './core/storage';
 export * from './core/tools';
 export * from './core/types';
+export * from './core/webmcp';
 
 export * from './ui/reagent';
 export * from './ui/reagent-composer';

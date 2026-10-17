@@ -13,6 +13,7 @@
     "@earendil-works/pi-agent-core": "1.3.0",
     "@earendil-works/pi-ai": "1.3.0",
     "@liyu1981/reagent": "workspace:*",
+    "@mcp-b/webmcp-polyfill": "^6.0.3",
     "highlight.js": "^11.12.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

@@ -4,6 +4,7 @@ import { useLayoutEffect, useState } from 'react';
 import { CodeBlock } from '../components/CodeBlock';
 import { BatteriesDemo, prepareBatteriesDemo } from '../demos/BatteriesDemo';
 import { VanillaDemo } from '../demos/VanillaDemo';
+import { WebMcpDemo } from '../demos/WebMcpDemo';
 import {
   clearAgentStorage,
   readDemoMode,
@@ -15,6 +16,7 @@ import { cn } from '../lib/cn';
 import type { SiteTheme } from '../lib/theme';
 import batteriesSource from '../demos/BatteriesDemo.tsx?raw';
 import vanillaSource from '../demos/VanillaDemo.tsx?raw';
+import webmcpSource from '../demos/WebMcpDemo.tsx?raw';
 
 type Surface = 'glass' | 'solid';
 
@@ -28,6 +30,11 @@ const TABS: { id: DemoMode; label: string; blurb: string }[] = [
     id: 'batteries',
     label: 'Skills · Tools · MCP',
     blurb: 'Two host-defined skills, a custom tool and the Exa MCP server.',
+  },
+  {
+    id: 'webmcp',
+    label: 'WebMCP',
+    blurb: 'The page exposes WebMCP tools; ReAgent auto-detects and uses them.',
   },
 ];
 
@@ -74,15 +81,17 @@ export function Demos({ theme }: { theme: SiteTheme }) {
   }
 
   const tab = TABS.find(entry => entry.id === active) ?? TABS[0];
-  const source = active === 'vanilla' ? vanillaSource : batteriesSource;
-  const Demo = active === 'vanilla' ? VanillaDemo : BatteriesDemo;
+  const source =
+    active === 'vanilla' ? vanillaSource : active === 'batteries' ? batteriesSource : webmcpSource;
+  const Demo =
+    active === 'vanilla' ? VanillaDemo : active === 'batteries' ? BatteriesDemo : WebMcpDemo;
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Demos</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-          Two ways to use ReAgent. Each demo runs live and shows its exact source — open the
+          Three ways to use ReAgent. Each demo runs live and shows its exact source — open the
           settings gear to add a model key, then chat.
         </p>
       </header>

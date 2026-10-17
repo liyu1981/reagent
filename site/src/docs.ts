@@ -12,6 +12,7 @@ import sessions from '../../docs/sessions.md?raw';
 import styling from '../../docs/styling.md?raw';
 import theming from '../../docs/theming.md?raw';
 import toolsAndSkills from '../../docs/tools-and-skills.md?raw';
+import webmcp from '../../docs/webmcp.md?raw';
 
 export interface DocEntry {
   slug: string;
@@ -98,6 +99,13 @@ export const DOCS: DocEntry[] = [
     group: 'Guides',
     summary: 'Run independent agents with a storage prefix.',
     content: multipleAgents,
+  },
+  {
+    slug: 'webmcp',
+    title: 'WebMCP',
+    group: 'Reference',
+    summary: 'Auto-detect and use tools the page exposes via document.modelContext.',
+    content: webmcp,
   },
   {
     slug: 'components',
