@@ -27,8 +27,10 @@ and `pi-ai`; your keys and conversations stay on the device.
   tools, skills or MCP servers. Add exactly what your app needs.
 - **Built-in settings.** Model, system prompt, skills, tools and MCP servers —
   a full settings surface out of the box.
-- **Any provider.** OpenAI, Anthropic, OpenRouter, DeepSeek, Groq and any
-  OpenAI-compatible endpoint such as Ollama, LM Studio or vLLM.
+- **Bring your own provider.** OpenRouter (verified for browser use) and any
+  OpenAI-compatible endpoint such as Ollama, LM Studio or vLLM. Other cloud
+  gateways are disabled until verified — see
+  [browser support](https://liyu1981.github.io/reagent/#/docs/browser-support).
 - **Composable and headless.** Use the styled preset, or compose
   `ReAgentProvider` with the exported UI parts and hooks.
 - **Themeable.** Tailwind v4 utilities with zero-specificity design tokens.
@@ -45,8 +47,8 @@ pnpm add @liyu1981/reagent
 npm install @liyu1981/reagent
 ```
 
-Peer dependencies: `@earendil-works/pi-agent-core@0.84.2`,
-`@earendil-works/pi-ai@0.84.2`, `react@^19.2.0`, `react-dom@^19.2.0`.
+Peer dependencies: `@earendil-works/pi-agent-core@1.3.0`,
+`@earendil-works/pi-ai@1.3.0`, `react@^19.2.0`, `react-dom@^19.2.0`.
 
 ## Quick start
 
@@ -72,7 +74,8 @@ Two live demos, each with its full source on screen:
   host-defined skills, a custom tool and the Exa MCP server.
 
 On first load ReAgent opens a session and points you at **Settings → Model** to
-add a provider key (or a local Ollama URL) and verify the connection.
+add an **OpenRouter** key (the only cloud provider verified for browser use) or
+a local Ollama URL, then verify the connection.
 
 ### Styles (Tailwind v4)
 
@@ -142,22 +145,31 @@ works outside React via `getAgentConfig` / `updateAgentConfig`.
 
 ## Providers
 
+ReAgent registers the cloud providers **verified to work from the browser**
+(only `openrouter` today) plus one custom OpenAI-compatible endpoint:
+
 | Provider | Notes |
 | -------- | ----- |
-| `openai` | API key |
-| `anthropic` | API key |
-| `openrouter` | API key |
-| `deepseek` | API key |
-| `groq` | API key |
-| `ollama` | OpenAI-compatible; defaults to `http://localhost:11434`, no key |
+| `openrouter` | API key. Verified end-to-end from the browser; Test lists its live model catalog. |
+| `ollama` | Custom local/OpenAI-compatible endpoint (Ollama, LM Studio, vLLM, …); defaults to `http://localhost:11434`, no key. |
+
+Most AI gateways block direct browser requests (missing CORS headers), so the
+rest of `pi-ai`'s providers are disabled until verified or put behind a backend
+proxy. See the
+[browser support table](https://liyu1981.github.io/reagent/#/docs/browser-support).
 
 Credentials are managed from the settings UI or programmatically:
 
 ```ts
-import { saveApiKey, setOllamaBaseUrl, testConnection, listAvailableModels } from '@liyu1981/reagent';
+import { listAvailableModels, saveApiKey, setOllamaBaseUrl, testConnection } from '@liyu1981/reagent';
 
-await saveApiKey('openai', 'sk-…');
-await testConnection('openai');
+// Cloud (verified for browser use)
+await saveApiKey('openrouter', 'sk-or-…');
+await testConnection('openrouter');
+
+// Local OpenAI-compatible endpoint (keyless)
+setOllamaBaseUrl('http://localhost:11434');
+
 listAvailableModels();
 ```
 
@@ -188,7 +200,7 @@ pnpm install
 pnpm build                  # build the library to dist/
 pnpm typecheck              # typecheck the library
 pnpm site:build             # build the library + the site
-pnpm site:dev               # run the docs/demo site locally
+pnpm site:dev               # run the docs/demo site locally (self-signed HTTPS)
 ```
 
 ## License
