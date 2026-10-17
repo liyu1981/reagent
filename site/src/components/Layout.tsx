@@ -93,12 +93,7 @@ export function Layout({
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
-            <span className="grid size-7 place-items-center rounded-lg bg-primary text-primary-foreground">
-              <svg viewBox="0 0 24 24" className="size-4" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3v4M12 17v4M3 12h4M17 12h4" />
-                <circle cx="12" cy="12" r="3.2" />
-              </svg>
-            </span>
+            <img src="favicon.svg" alt="" className="size-7" />
             ReAgent
             <span className="ml-1 hidden rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
               v{__APP_VERSION__}

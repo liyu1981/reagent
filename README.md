@@ -1,4 +1,4 @@
-# ReAgent
+# ⚗️ ReAgent
 
 **Composable React AI agent** — drop an in-app chat, a conversation tree and a
 complete settings surface into any React app. The agent loop runs entirely in
