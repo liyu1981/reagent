@@ -47,7 +47,9 @@ await listWebMcpTools();     // the page's tools as agent tools
 const off = subscribeWebMcp(() => { /* tools changed */ });
 ```
 
-Inside a provider, `useReAgent().webmcp` gives `{ available, toolCount }`.
+Inside a provider, `useReAgent().webmcp` gives `{ available, toolCount, tools }`,
+and the tools are listed in **Settings → WebMCP** (the tab shows whether the page
+provides a context and every tool it exposes).
 
 ## Notes
 

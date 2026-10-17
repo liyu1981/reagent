@@ -116,6 +116,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
     'API keys are stored only in this browser and sent directly to the provider you choose.',
   'agent.settingsOpen': 'Agent settings',
   'agent.settingsTabMcp': 'MCP',
+  'agent.settingsTabWebmcp': 'WebMCP',
   'agent.settingsTabModel': 'Model',
   'agent.settingsTabPrompt': 'Prompt',
   'agent.settingsTabSkills': 'Skills',
@@ -176,6 +177,11 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.uploading': 'Uploading…',
   'agent.usedTool': 'Used {{tool}}',
   'agent.verified': 'Verified',
+  'agent.webmcpBadge': 'page tool',
+  'agent.webmcpDescription':
+    'Tools the current page exposes through WebMCP (document.modelContext). ReAgent adds them to the agent automatically.',
+  'agent.webmcpEmpty': 'The page provides a WebMCP context but has not registered any tools.',
+  'agent.webmcpUnavailable': 'WebMCP is not available on this page.',
 };
 
 /** Interpolate `{{token}}` placeholders. */

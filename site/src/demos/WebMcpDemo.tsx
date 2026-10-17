@@ -43,16 +43,12 @@ export function WebMcpDemo({ theme, surface = 'glass', notify }: DemoProps) {
       await context.registerTool(
         {
           name: 'count_words',
-          title: 'Count words',
-          description: 'Count the words in a piece of text.',
-          inputSchema: {
-            type: 'object',
-            properties: { text: { type: 'string', description: 'The text to count.' } },
-            required: ['text'],
-          },
-          execute: input => {
-            const text = input.text.trim();
-            return String(text === '' ? 0 : text.split(/\s+/).length);
+          title: 'Count page words',
+          description: 'Count the words on the current page.',
+          inputSchema: { type: 'object', properties: {} },
+          execute: () => {
+            const text = document.body.innerText.replace(/\s+/g, ' ').trim();
+            return String(text === '' ? 0 : text.split(' ').length);
           },
         },
         { signal: controller.signal },

@@ -55,3 +55,4 @@ export * from './ui/settings/prompt-panel';
 export * from './ui/settings/reagent-settings-view';
 export * from './ui/settings/skills-panel';
 export * from './ui/settings/tools-panel';
+export * from './ui/settings/webmcp-panel';

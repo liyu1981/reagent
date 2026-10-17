@@ -119,7 +119,7 @@ export interface ReAgentContextValue {
   toolLabels: Map<string, string>;
   tools: AgentToolDescriptor[];
   /** WebMCP tools the current page exposes (empty when unavailable). */
-  webmcp: { available: boolean; toolCount: number };
+  webmcp: { available: boolean; toolCount: number; tools: AgentTool<any>[] };
 
   t: ReAgentTranslate;
   language: string;
@@ -968,7 +968,7 @@ export function ReAgentProvider({
     setExaKeyPrompt,
     saveExaKey,
     toolLabels,
-    webmcp: { available: hasWebMcp(), toolCount: webmcpTools.length },
+    webmcp: { available: hasWebMcp(), toolCount: webmcpTools.length, tools: webmcpTools },
     tools: listToolDescriptors(extraDescriptorsRef.current ?? [], {
       hasEditor: editor !== undefined && editor !== null,
       hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,

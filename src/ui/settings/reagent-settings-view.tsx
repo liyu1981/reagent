@@ -8,6 +8,7 @@ import { ReAgentModelPanel } from './model-panel';
 import { ReAgentPromptPanel } from './prompt-panel';
 import { ReAgentSkillsPanel } from './skills-panel';
 import { ReAgentToolsPanel } from './tools-panel';
+import { ReAgentWebMcpPanel } from './webmcp-panel';
 
 /**
  * The in-component settings page. It replaces the chat surface (the same
@@ -48,6 +49,7 @@ export function ReAgentSettingsView() {
             <TabsTrigger value="skills">{t('agent.settingsTabSkills')}</TabsTrigger>
             <TabsTrigger value="tools">{t('agent.settingsTabTools')}</TabsTrigger>
             <TabsTrigger value="mcp">{t('agent.settingsTabMcp')}</TabsTrigger>
+            <TabsTrigger value="webmcp">{t('agent.settingsTabWebmcp')}</TabsTrigger>
           </TabsList>
         </div>
         <div
@@ -68,6 +70,9 @@ export function ReAgentSettingsView() {
           </TabsContent>
           <TabsContent value="mcp">
             <ReAgentMcpPanel />
+          </TabsContent>
+          <TabsContent value="webmcp">
+            <ReAgentWebMcpPanel />
           </TabsContent>
         </div>
       </Tabs>
