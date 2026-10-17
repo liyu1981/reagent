@@ -1,4 +1,5 @@
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
+import type { ToolCall } from '@earendil-works/pi-ai';
 import { Bot, ChevronDown, GitBranch, Sparkles, X } from 'lucide-react';
 import { useReAgent } from '../core/hooks';
 import { useMarkdown, useResolvedTheme, useTranslation } from '../core/i18n';
@@ -26,18 +27,11 @@ export function messageText(message: AgentMessage): string {
   return '';
 }
 
-interface ToolCallBlock {
-  type: 'toolCall';
-  id: string;
-  name: string;
-  arguments: Record<string, unknown>;
-}
-
-function toolCallBlocks(message: AgentMessage): ToolCallBlock[] {
+function toolCallBlocks(message: AgentMessage): ToolCall[] {
   if (message.role !== 'assistant') {
     return [];
   }
-  return message.content.filter((block): block is ToolCallBlock => block.type === 'toolCall');
+  return message.content.filter((block): block is ToolCall => block.type === 'toolCall');
 }
 
 export interface ReAgentMessageProps {
@@ -146,7 +140,7 @@ function BranchButton({ onClick, label }: { onClick: () => void; label: string }
 }
 
 interface ReAgentToolCallProps {
-  call: ToolCallBlock;
+  call: ToolCall;
   result?: AgentMessage;
   label: string;
   expanded: boolean;

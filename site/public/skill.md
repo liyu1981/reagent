@@ -67,14 +67,11 @@ export function AgentPanel() {
 ```
 
 On first load ReAgent opens a session and points the user at
-**Settings → Model**.
-
-> **Cloud providers are temporarily disabled.** Calling AI gateways directly
-> from the browser makes their errors opaque (they omit CORS headers on error
-> responses). Until a backend/proxy path exists, the only provider is
-> **Custom Local LLM**: set the base URL of an OpenAI-compatible server — e.g.
-> `http://localhost:11434` for Ollama — and click **Test**. Keys live in
-> `localStorage` and go straight to the provider.
+**Settings → Model**. The user can set a local OpenAI-compatible base URL (e.g.
+`http://localhost:11434` for Ollama) or an **OpenRouter** API key — the only
+cloud provider verified to work from the browser. Most cloud gateways are
+disabled because they block browser (CORS) requests. Click **Test**; keys live
+in `localStorage` and go straight to the provider.
 
 ## 4. Common props
 

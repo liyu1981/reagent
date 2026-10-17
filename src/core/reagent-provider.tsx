@@ -717,7 +717,13 @@ export function ReAgentProvider({
       return;
     }
     latestRef.current = sessionNow;
-    instance.state.systemPrompt = buildSystemPrompt(currentBasePrompt());
+    // pi-agent-core 1.x keeps the prompt in the transcript's leading system
+    // message (`state.systemPrompt` is read-only), so update that message.
+    const nextPrompt = buildSystemPrompt(currentBasePrompt());
+    const [head, ...rest] = instance.state.messages;
+    if (head !== undefined && head.role === 'system') {
+      instance.state.messages = [{ ...head, content: nextPrompt }, ...rest];
+    }
     const prompt =
       selection !== null && selection !== undefined && selection.trim() !== ''
         ? `Revise the following selection.\n\n\`\`\`markdown\n${selection}\n\`\`\`\n\nInstruction: ${text}`

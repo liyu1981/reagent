@@ -1,19 +1,22 @@
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { defineConfig } from 'vite';
 
 // The library lives at the repo root; its version is the "current" version the
 // site advertises in the header.
-import { version as libraryVersion } from '../package.json';
+import rootPackage from '../package.json' with { type: 'json' };
 
 // Project page on GitHub Pages is served from /reagent/.
 // The dev server stays at the root for convenience.
 export default defineConfig(({ command }) => ({
   base: command === 'build' ? '/reagent/' : '/',
   define: {
-    __APP_VERSION__: JSON.stringify(libraryVersion),
+    __APP_VERSION__: JSON.stringify(rootPackage.version),
   },
-  plugins: [react(), tailwindcss()],
+  // HTTPS in dev (self-signed) so cloud providers can be tested from a secure
+  // origin; the production build stays plain HTTPS on Pages.
+  plugins: [react(), tailwindcss(), ...(command === 'serve' ? [basicSsl()] : [])],
   resolve: {
     dedupe: ['react', 'react-dom'],
   },

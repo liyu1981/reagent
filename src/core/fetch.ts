@@ -48,8 +48,8 @@ interface ProviderAuthProfile {
  *   azure-openai-responses                          -> `api-key`
  *   cloudflare-ai-gateway                           -> `cf-aig-authorization`
  *
- * (Fireworks and MiniMax are not registered at all — see
- * `UNSUPPORTED_PROVIDER_IDS` in `models.ts`.)
+ * (Only providers in `BROWSER_SUPPORTED_PROVIDERS` are registered at all —
+ * see `models.ts` and `docs/browser-support.md`.)
  */
 const PROVIDER_AUTH: Record<string, ProviderAuthProfile> = {
   // Anthropic Messages API, but authenticated with `Authorization: Bearer`.

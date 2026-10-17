@@ -19,7 +19,7 @@ export {
 } from './core/mcp';
 export * from './core/messages';
 export {
-  CLOUD_PROVIDERS_ENABLED,
+  BROWSER_SUPPORTED_PROVIDERS,
   clearApiKey,
   getModel,
   getModels,
@@ -32,7 +32,6 @@ export {
   saveApiKey,
   setOllamaBaseUrl,
   testConnection,
-  UNSUPPORTED_PROVIDER_IDS,
 } from './core/models';
 export * from './core/prompt';
 export * from './core/reagent-provider';

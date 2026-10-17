@@ -9,6 +9,7 @@ import {
   createProvider,
   type Model,
   type MutableModels,
+  type Provider,
 } from '@earendil-works/pi-ai';
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
@@ -288,37 +289,159 @@ function buildOllamaProvider(baseUrl: string) {
  * - `fireworks`   — `/inference/v1/messages` returns no CORS headers.
  * - `minimax`     — preflight rejects the headers the Anthropic client sends.
  * - `minimax-cn`  — same as `minimax`.
+ * - `vercel-ai-gateway`, `opencode`, `opencode-go` — tested, CORS-blocked.
+ *
+ * `openrouter` is the only provider verified to work from the browser so far.
  */
-export const UNSUPPORTED_PROVIDER_IDS: ReadonlySet<string> = new Set([
-  'fireworks',
-  'minimax',
-  'minimax-cn',
-]);
+export const BROWSER_SUPPORTED_PROVIDERS: ReadonlySet<string> = new Set(['openrouter']);
+
+// Live provider model catalogs keyed by provider id. pi-ai ships static
+// catalogs that go stale, so the Test button / refresh replaces them with what
+// the provider actually serves.
+const liveModels = new Map<string, Model<Api>[]>();
+
+interface ModelsEndpoint {
+  url: string;
+  headers: Record<string, string>;
+}
 
 /**
- * Cloud providers are temporarily disabled.
- *
- * ReAgent calls providers directly from the browser, but most gateways omit
- * `Access-Control-Allow-Origin` on error responses (and some providers expose
- * no CORS at all), so failures surface as opaque CORS errors with the real
- * reason hidden — impossible to diagnose or handle client-side. They will
- * come back behind a backend/proxy path. The custom OpenAI-compatible endpoint
- * (Ollama, LM Studio, vLLM, …) is unaffected and remains available.
- *
- * Flip this to `true` (and the model-panel note) once a backend is in place.
+ * Candidate model-listing endpoints for a provider, in order of likelihood.
+ * Providers disagree on whether the base URL already carries the API version
+ * segment, and some (e.g. OpenCode) only set it per model, so we derive the
+ * base and try both spellings.
  */
-export const CLOUD_PROVIDERS_ENABLED = false;
+function listEndpoints(provider: Provider<Api>, apiKey: string | undefined): ModelsEndpoint[] {
+  const model = provider.getModels()[0];
+  const base = (provider.baseUrl ?? model?.baseUrl)?.replace(/\/$/, '');
+  const api = model?.api;
+  if (base === undefined || api === undefined) {
+    return [];
+  }
+  if (api === 'google-generative-ai') {
+    return [
+      {
+        url: `${base}/models${apiKey === undefined ? '' : `?key=${encodeURIComponent(apiKey)}`}`,
+        headers: {},
+      },
+    ];
+  }
+
+  const headers: Record<string, string> = {};
+  if (apiKey !== undefined) {
+    headers.authorization = `Bearer ${apiKey}`;
+    headers['x-api-key'] = apiKey;
+  }
+  try {
+    if (new URL(base).hostname === 'api.anthropic.com') {
+      headers['anthropic-version'] = '2023-06-01';
+    }
+  } catch {
+    // relative base — skip the host check
+  }
+
+  return /\/v\d+[a-z]*$/.test(base)
+    ? [{ url: `${base}/models`, headers }]
+    : [
+        { url: `${base}/v1/models`, headers },
+        { url: `${base}/models`, headers },
+      ];
+}
+
+function parseModelIds(data: {
+  data?: Array<{ id?: string }>;
+  models?: Array<{ name?: string }>;
+}): string[] {
+  if (Array.isArray(data.data)) {
+    return data.data.map(model => model.id).filter((id): id is string => typeof id === 'string');
+  }
+  if (Array.isArray(data.models)) {
+    return data.models
+      .map(model => model.name?.replace(/^models\//, ''))
+      .filter((id): id is string => typeof id === 'string' && id !== '');
+  }
+  return [];
+}
+
+/**
+ * Model ids a provider reports, or `undefined` when it exposes no listing
+ * endpoint. Throws on an explicit auth failure (401/403).
+ */
+async function fetchModelIds(
+  provider: Provider<Api>,
+  apiKey: string | undefined,
+): Promise<string[] | undefined> {
+  for (const endpoint of listEndpoints(provider, apiKey)) {
+    let response: Response;
+    try {
+      response = await browserSafeFetch(undefined, provider.id)(endpoint.url, {
+        headers: endpoint.headers,
+        signal: AbortSignal.timeout(15000),
+      });
+    } catch {
+      continue;
+    }
+    if (response.status === 404 || response.status === 405) {
+      continue;
+    }
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+    if (!response.ok) {
+      continue;
+    }
+    return parseModelIds((await response.json()) as Parameters<typeof parseModelIds>[0]);
+  }
+  return undefined;
+}
+
+/** Build registry models from live ids, reusing catalog metadata where known. */
+function buildLiveModels(provider: Provider<Api>, ids: string[]): Model<Api>[] | undefined {
+  const catalog = new Map(provider.getModels().map(model => [model.id, model]));
+  const template = provider.getModels()[0];
+  const models: Model<Api>[] = [];
+  for (const id of ids) {
+    const known = catalog.get(id);
+    if (known !== undefined) {
+      models.push(known);
+    } else if (template !== undefined) {
+      models.push({ ...template, id, name: id });
+    }
+  }
+  return models.length > 0 ? models : undefined;
+}
+
+/** Wrap a provider so `getModels` serves its live catalog once fetched. */
+function withLiveModels(provider: Provider<Api>): Provider<Api> {
+  return {
+    ...provider,
+    getModels: () => liveModels.get(provider.id) ?? provider.getModels(),
+    refreshModels: async context => {
+      if (!context.allowNetwork || context.signal.aborted) {
+        return;
+      }
+      const apiKey = context.credential?.type === 'api_key' ? context.credential.key : undefined;
+      const ids = await fetchModelIds(provider, apiKey);
+      if (ids === undefined) {
+        return;
+      }
+      const models = buildLiveModels(provider, ids);
+      if (models !== undefined) {
+        await context.publish({ update: () => liveModels.set(provider.id, models) });
+      }
+    },
+  };
+}
 
 function buildModels(prefix: string): MutableModels {
   const models = createModels({ credentials: credentialStore(prefix) });
-  if (CLOUD_PROVIDERS_ENABLED) {
-    // Every provider pi-ai ships, minus the ones we know are browser-incompatible.
-    for (const provider of builtinProviders()) {
-      if (UNSUPPORTED_PROVIDER_IDS.has(provider.id)) {
-        continue;
-      }
-      models.setProvider(provider);
+  // Only providers known to allow browser (CORS) requests, plus our keyless
+  // OpenAI-compatible endpoint.
+  for (const provider of builtinProviders()) {
+    if (!BROWSER_SUPPORTED_PROVIDERS.has(provider.id)) {
+      continue;
     }
+    models.setProvider(withLiveModels(provider));
   }
   models.setProvider(buildOllamaProvider(getOllamaBaseUrl(prefix)));
   return models;
@@ -415,21 +538,22 @@ export async function refreshModels(prefix: string = DEFAULT_STORAGE_PREFIX): Pr
 }
 
 /**
- * Minimal connection test for a provider. Cloud providers resolve auth and
- * issue a tiny completion on their first model. The local OpenAI-compatible
- * provider probes `GET /v1/models` instead, so connectivity and keyless auth
- * are verified without depending on a specific model being loaded. Rejects
- * with a human-readable message on failure.
+ * Validate a provider without sending a chat completion: resolve its
+ * credential and list its models. The listing also refreshes the picker with
+ * the provider's actual models (pi-ai's static catalog can be stale).
+ * Providers without a listing endpoint are accepted once their credential
+ * resolves. Rejects with a human-readable message.
  */
 export async function testConnection(
   providerId: string,
   prefix: string = DEFAULT_STORAGE_PREFIX,
 ): Promise<string> {
   const registry = getModels(prefix);
-  const auth = await registry.getAuth(providerId);
-  if (auth === undefined) {
+  const resolution = await registry.getAuth(providerId);
+  if (resolution === undefined) {
     throw new Error('not_configured');
   }
+
   if (providerId === OLLAMA_PROVIDER_ID) {
     const v1Url = registry.getProvider(providerId)?.baseUrl;
     if (v1Url === undefined) {
@@ -449,18 +573,23 @@ export async function testConnection(
     const count = registry.getModels(providerId).length || probeCount;
     return count > 0 ? `${count} model${count === 1 ? '' : 's'}` : 'reachable';
   }
-  const model = registry.getModels(providerId)[0];
-  if (model === undefined) {
+
+  const provider = registry.getProvider(providerId);
+  if (provider === undefined) {
     throw new Error('no_model');
   }
-  const response = await registry.completeSimple(
-    model,
-    { messages: [{ role: 'user', content: 'Reply with exactly: ok', timestamp: Date.now() }] },
-    { fetch: browserSafeFetch(undefined, providerId) },
-  );
-  if (response.stopReason === 'error' || response.stopReason === 'aborted') {
-    throw new Error(response.errorMessage ?? `request_failed_${response.stopReason}`);
+  const ids = await fetchModelIds(provider, resolution.auth.apiKey);
+  if (ids === undefined) {
+    // No listing endpoint — a resolved credential is as far as we can test.
+    markVerified(providerId, prefix);
+    return 'reachable';
+  }
+  const models = buildLiveModels(provider, ids);
+  if (models !== undefined) {
+    liveModels.set(providerId, models);
+    notifyModels(prefix);
   }
   markVerified(providerId, prefix);
-  return model.id;
+  const count = models?.length ?? registry.getModels(providerId).length;
+  return count > 0 ? `${count} model${count === 1 ? '' : 's'}` : 'reachable';
 }

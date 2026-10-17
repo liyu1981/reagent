@@ -20,19 +20,18 @@ model is verified yet.
 
 ## Configure a model
 
-> **Cloud providers are temporarily disabled** — calling AI gateways straight
-> from the browser makes their errors opaque (missing CORS headers). See
-> [Models & providers](./models). For now, use a local OpenAI-compatible
-> endpoint.
+ReAgent never asks for a key on your behalf. The built-in settings view does:
 
 1. Open the **gear** icon in the header.
 2. Pick the **Model** tab.
-3. Under **Custom Local LLM**, set the base URL of your OpenAI-compatible
-   server — e.g. `http://localhost:11434` for Ollama — and press **Save**.
+3. Set the **Custom Local LLM** base URL (e.g. `http://localhost:11434` for
+   Ollama) or paste an **OpenRouter** API key — the only cloud provider verified
+   to work from the browser.
 4. Press **Test**. Once verified, the model appears in the composer's picker.
 
 Keys are stored in `localStorage` and sent directly from the browser to the
-provider.
+provider. Most cloud gateways are disabled because they block browser requests
+— see [Browser support & cloud providers](./browser-support).
 
 ## Full-height panel
 

@@ -1,3 +1,4 @@
+import browserSupport from '../../docs/browser-support.md?raw';
 import components from '../../docs/components.md?raw';
 import forAgents from '../../docs/for-agents.md?raw';
 import headless from '../../docs/headless.md?raw';
@@ -69,6 +70,13 @@ export const DOCS: DocEntry[] = [
     group: 'Guides',
     summary: 'Credentials, verification and model selection.',
     content: models,
+  },
+  {
+    slug: 'browser-support',
+    title: 'Browser support & cloud providers',
+    group: 'Guides',
+    summary: 'Why cloud providers are disabled, and what works.',
+    content: browserSupport,
   },
   {
     slug: 'tools-and-skills',

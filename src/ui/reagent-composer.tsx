@@ -370,6 +370,7 @@ export function ReAgentModelPicker({ className, ...props }: ComponentProps<typeo
               <button
                 key={`${option.provider}::${option.model.id}`}
                 type="button"
+                title={`${option.model.name} · ${option.providerName}`}
                 onClick={() => {
                   changeModel(option.provider, option.model.id);
                   close();

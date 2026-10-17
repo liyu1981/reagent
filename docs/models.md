@@ -3,61 +3,47 @@
 ReAgent wraps `pi-ai`'s model registry and adds browser storage plus a
 verification step.
 
-## Browser CORS limitation (cloud providers disabled)
+> **Cloud providers are mostly disabled.** ReAgent calls providers directly from
+> the browser, and most gateways do not allow that (their missing CORS headers
+> hide the real error). Only verified providers are registered — see
+> [Browser support & cloud providers](./browser-support).
 
-ReAgent runs the agent loop **in the browser**, so it calls providers directly
-from the page. That is fine for a local endpoint, but cloud gateways are a
-problem:
+## Live model refresh
 
-- A CORS preflight can reject SDK headers (`x-stainless-*`, …).
-- Worse, most gateways **omit `Access-Control-Allow-Origin` on error
-  responses**. When a request fails (bad key, unknown model, rate limit), the
-  browser reports only an opaque *"No 'Access-Control-Allow-Origin' header"*
-  error and hides the real status/body — impossible to diagnose or handle from
-  client-side code.
-
-Because of this, **all cloud providers are temporarily disabled** and will
-return once requests can be routed through a backend/proxy. The switch is
-`CLOUD_PROVIDERS_ENABLED` (currently `false`). Until then the only usable
-provider is the **Custom Local LLM** — any OpenAI-compatible endpoint (Ollama,
-LM Studio, vLLM, …) the browser can reach.
+The Test button (and the refresh on load) lists the provider's actual models and
+replaces pi-ai's static catalog in the picker, so a stale catalog no longer hides
+the real models. The live list is held in memory — reloading falls back to the
+bundled catalog until the next test/refresh.
 
 ## Providers
 
-When cloud providers are enabled, ReAgent registers **every provider `pi-ai`
-ships** (via `builtinProviders()`), plus one custom OpenAI-compatible endpoint.
-Common API-key providers include:
+ReAgent registers the providers listed in `BROWSER_SUPPORTED_PROVIDERS` (only
+`openrouter` today) plus one custom OpenAI-compatible endpoint:
 
 | Provider id | Notes |
 | ----------- | ----- |
-| `openai`, `anthropic`, `openrouter`, `deepseek`, `groq` | First-class cloud providers. |
-| `google`, `mistral`, `xai`, `together`, `cerebras`, `nvidia`, `huggingface`, `moonshotai`, `zai`, `baseten`, `vercel-ai-gateway`, … | Also API key based. |
-| `amazon-bedrock`, `google-vertex`, `github-copilot`, `cloudflare-*`, `openai-codex`, … | Environment/OAuth-oriented; listed but not driven by a plain key. |
+| `openrouter` | Browser-verified. API key. |
 | `ollama` | Custom local/OpenAI-compatible endpoint; defaults to `http://localhost:11434`, usually no key. |
 
-The settings UI groups these into **Custom Local LLM** and a searchable
-**Cloud providers** dropdown. The exact set depends on the installed `pi-ai`
-version — call `getModels().getProviders()` for the full list.
-
-A few pi-ai providers are intentionally **not registered** because browsers
-cannot call them — see **Disabled providers** below.
+The auth formats and notes below are reference material for the full pi-ai set.
 
 ## Auth format per provider
 
-The key is sent with whatever header the provider's API expects. Audit of the
-current set:
+The key is sent with whatever header the provider's API expects. Reference for
+the full pi-ai set (most are currently disabled — see
+[Browser support & cloud providers](./browser-support)):
 
 | Header sent | Providers |
 | ----------- | --------- |
-| `Authorization: Bearer <key>` | `openai`, `openrouter`, `deepseek`, `groq`, `mistral`, `xai`, `together`, `cerebras`, `baseten`, `huggingface`, `nvidia`, `moonshotai`, `moonshotai-cn`, `zai`, `zai-coding-cn`, `xiaomi`, `xiaomi-token-plan-*`, `qwen-token-plan*`, `ant-ling`, `cloudflare-workers-ai`, `github-copilot`, `openai-codex` |
+| `Authorization: Bearer <key>` | `openai`, `openrouter`, `deepseek`, `groq`, `mistral`, `xai`, `together`, `cerebras`, `baseten`, `huggingface`, `nvidia`, `moonshotai`, `moonshotai-cn`, `meta`, `zai`, `zai-coding-cn`, `xiaomi`, `xiaomi-token-plan-*`, `qwen-token-plan*`, `ant-ling`, `cloudflare-workers-ai`, `github-copilot`, `openai-codex` |
 | `x-api-key: <key>` | `anthropic`, `kimi-coding` |
 | `x-goog-api-key: <key>` | `google` |
-| `api-key: <key>` | `azure-openai-responses` |
+| `api-key: <key>` | `azure` |
 | `cf-aig-authorization: Bearer <key>` | `cloudflare-ai-gateway` |
 | AWS SigV4 credentials or Bedrock bearer token | `amazon-bedrock` |
 | `GOOGLE_CLOUD_API_KEY` or Google ADC (OAuth) | `google-vertex` |
 | OAuth access token (`Authorization: Bearer`) | `openai-codex`, `github-copilot` (OAuth), `anthropic`/`kimi-coding`/`openrouter`/`xai` when authenticated via OAuth |
-| mixed by model API | `opencode`, `opencode-go`, `xai` |
+| mixed by model API | `opencode`, `opencode-go`, `xai`, `azure` |
 | gateway-defined | `vercel-ai-gateway` — see below |
 
 ### Gateways that want a different header
@@ -73,20 +59,6 @@ alone. On top of that, the fetch drops SDK telemetry headers (`x-stainless-*`,
 `x-goog-api-client`, `x-session-affinity`, `x-app`, `x-request-id`,
 `x-should-retry`) and `anthropic-dangerous-direct-browser-access` everywhere
 except `api.anthropic.com` (which needs it for browser CORS).
-
-### Disabled providers
-
-These pi-ai providers are **not registered** — browsers cannot call them
-directly, so they would only produce confusing CORS/network failures. They are
-listed in `UNSUPPORTED_PROVIDER_IDS` and hidden from the model settings:
-
-| Provider | Why it is disabled |
-| -------- | ------------------ |
-| `fireworks` | Its Anthropic endpoint (`/inference/v1/messages`) returns no CORS headers at all. |
-| `minimax`, `minimax-cn` | The CORS preflight rejects the headers the Anthropic client sends (only `Authorization` is allowed; `x-api-key` and `anthropic-version` are not). |
-
-This only affects ReAgent's in-browser registry; calling these providers from a
-server with `pi-ai` directly is unaffected.
 
 ## Credentials
 
