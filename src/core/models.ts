@@ -16,6 +16,7 @@ import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
 
 import { getAgentConfig, updateAgentConfig } from './config';
 import { browserSafeFetch } from './fetch';
+import { activeHostProviders, buildHostProvider, getHostProviderConfig } from './host-providers';
 import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
 import { DEFAULT_OLLAMA_BASE_URL, OLLAMA_PROVIDER_ID } from './types';
 
@@ -152,6 +153,10 @@ function legacyVerified(prefix: string): string[] {
 
 /** Providers whose connection was verified by a successful test. */
 export function isVerified(providerId: string, prefix: string = DEFAULT_STORAGE_PREFIX): boolean {
+  // A host-injected provider is verified as soon as it has a config.
+  if (getHostProviderConfig(providerId) !== null) {
+    return true;
+  }
   const config = getAgentConfig(prefix);
   if (config.providers[providerId]?.verified !== undefined) {
     return config.providers[providerId]?.verified === true;
@@ -435,8 +440,11 @@ function withLiveModels(provider: Provider<Api>): Provider<Api> {
 
 function buildModels(prefix: string): MutableModels {
   const models = createModels({ credentials: credentialStore(prefix) });
-  // Only providers known to allow browser (CORS) requests, plus our keyless
-  // OpenAI-compatible endpoint.
+  // Host-injected providers first, then browser-verified built-ins, then our
+  // keyless OpenAI-compatible endpoint.
+  for (const { descriptor, config } of activeHostProviders()) {
+    models.setProvider(buildHostProvider(descriptor, config));
+  }
   for (const provider of builtinProviders()) {
     if (!BROWSER_SUPPORTED_PROVIDERS.has(provider.id)) {
       continue;

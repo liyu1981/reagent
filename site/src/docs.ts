@@ -1,5 +1,6 @@
 import browserSupport from '../../docs/browser-support.md?raw';
 import components from '../../docs/components.md?raw';
+import hostProviders from '../../docs/host-providers.md?raw';
 import forAgents from '../../docs/for-agents.md?raw';
 import headless from '../../docs/headless.md?raw';
 import hostIntegrations from '../../docs/host-integrations.md?raw';
@@ -64,6 +65,13 @@ export const DOCS: DocEntry[] = [
     group: 'Guides',
     summary: 'Markdown, tools, uploads and the editor bridge.',
     content: hostIntegrations,
+  },
+  {
+    slug: 'host-providers',
+    title: 'Host providers',
+    group: 'Guides',
+    summary: 'Inject your own provider with a custom setup UI.',
+    content: hostProviders,
   },
   {
     slug: 'models',

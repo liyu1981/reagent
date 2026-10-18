@@ -3,6 +3,7 @@ import { cva } from 'class-variance-authority';
 import { useState } from 'react';
 import type { EditorMutationBridge } from '../core/editor-mutations';
 import { useReAgent } from '../core/hooks';
+import type { ReAgentHostProvider } from '../core/host-providers';
 import { useTranslation } from '../core/i18n';
 import type {
   ReAgentMarkdown,
@@ -72,6 +73,8 @@ export interface ReAgentProps {
    * Give each agent on a page a different value to keep them independent.
    */
   storagePrefix?: string;
+  /** Host-injected LLM providers (own setup UI; config kept in memory only). */
+  hostProviders?: ReAgentHostProvider[];
 }
 
 export type ReAgentSurface = 'glass' | 'solid';
@@ -113,6 +116,7 @@ export function ReAgent({
   extraTools,
   extraDescriptors,
   storagePrefix,
+  hostProviders,
 }: ReAgentProps) {
   return (
     <ReAgentProvider
@@ -130,6 +134,7 @@ export function ReAgent({
       extraTools={extraTools}
       extraDescriptors={extraDescriptors}
       storagePrefix={storagePrefix}
+      hostProviders={hostProviders}
     >
       <ReAgentChrome onClose={onClose} surface={surface} className={className} />
     </ReAgentProvider>

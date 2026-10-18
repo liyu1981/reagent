@@ -1,5 +1,7 @@
 import type { FetchFunction } from '@earendil-works/pi-ai';
 
+import { hostProviderRequestHeaders } from './host-providers';
+
 /**
  * Browser request normalization.
  *
@@ -76,8 +78,9 @@ function sanitizeHeaders(
   headers: HeadersInit | undefined,
   host: string | null,
   profile: ProviderAuthProfile | undefined,
+  hostHeaders: Record<string, string> | null = null,
 ): HeadersInit | undefined {
-  if (headers === undefined) {
+  if (headers === undefined && hostHeaders === null) {
     return undefined;
   }
   const next = new Headers(headers);
@@ -104,6 +107,12 @@ function sanitizeHeaders(
     }
   }
 
+  if (hostHeaders !== null) {
+    for (const [name, value] of Object.entries(hostHeaders)) {
+      next.set(name, value);
+    }
+  }
+
   return next;
 }
 
@@ -114,11 +123,12 @@ function sanitizeHeaders(
 export function browserSafeFetch(base?: FetchFunction, providerId?: string): FetchFunction {
   const impl = base ?? fetch;
   const profile = providerId === undefined ? undefined : PROVIDER_AUTH[providerId];
+  const hostHeaders = providerId === undefined ? null : hostProviderRequestHeaders(providerId);
   return (input, init) =>
     impl(
       input,
       init === undefined
         ? init
-        : { ...init, headers: sanitizeHeaders(init.headers, hostOf(input), profile) },
+        : { ...init, headers: sanitizeHeaders(init.headers, hostOf(input), profile, hostHeaders) },
     );
 }

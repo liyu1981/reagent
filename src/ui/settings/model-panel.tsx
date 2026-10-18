@@ -124,7 +124,7 @@ function StatusMessage({ status }: { status: PanelStatus }) {
 export function ReAgentModelPanel() {
   const { t } = useTranslation();
   const toast = useToast();
-  const { storagePrefix } = useReAgent();
+  const { storagePrefix, hostProviders } = useReAgent();
   const providers = useMemo(
     () =>
       getModels(storagePrefix)
@@ -221,6 +221,19 @@ export function ReAgentModelPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Host-injected providers render their own setup UI here. */}
+      {hostProviders.map(provider => {
+        const HostComponent = provider.component;
+        return (
+          <section key={provider.id} className="space-y-2">
+            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+              {provider.name}
+            </p>
+            <HostComponent config={provider.config} setConfig={provider.setConfig} />
+          </section>
+        );
+      })}
+
       {/* Custom / local OpenAI-compatible endpoint */}
       <section className="space-y-2">
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">

@@ -5,6 +5,7 @@ export * from './core/attachments';
 export * from './core/config';
 export * from './core/editor-mutations';
 export * from './core/hooks';
+export * from './core/host-providers';
 export * from './core/i18n';
 export {
   getExaApiKey,

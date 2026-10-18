@@ -33,6 +33,8 @@ and `pi-ai`; your keys and conversations stay on the device.
   [browser support](https://liyu1981.github.io/reagent/#/docs/browser-support).
 - **WebMCP aware.** If the page exposes tools through `document.modelContext`,
   ReAgent detects them and hands them to the model automatically.
+- **Host-injectable providers.** Register your own LLM provider with a custom
+  setup UI; connection details stay in memory only.
 - **Composable and headless.** Use the styled preset, or compose
   `ReAgentProvider` with the exported UI parts and hooks.
 - **Themeable.** Tailwind v4 utilities with zero-specificity design tokens.

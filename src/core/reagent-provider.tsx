@@ -19,6 +19,13 @@ import {
   updateAgentConfig as updateConfigPatch,
 } from './config';
 import type { EditorMutationBridge } from './editor-mutations';
+import {
+  getHostProviderConfig,
+  type ReAgentHostProvider,
+  type ReAgentHostProviderConfig,
+  registerHostProviders,
+  setHostProviderConfig,
+} from './host-providers';
 import { EXA_SERVER_ID, getMcpManager, setExaApiKey, syncMcpServersWithTimeout } from './mcp';
 import {
   makeTranslator,
@@ -32,6 +39,7 @@ import {
   getModelsVersion,
   listAvailableModels,
   OLLAMA_PROVIDER_ID,
+  rebuildModels,
   refreshModels,
   subscribeModels,
 } from './models';
@@ -122,6 +130,14 @@ export interface ReAgentContextValue {
   tools: AgentToolDescriptor[];
   /** WebMCP tools the current page exposes (empty when unavailable). */
   webmcp: { available: boolean; toolCount: number; tools: AgentTool<any>[] };
+  /** Host-injected providers and their in-memory config. */
+  hostProviders: {
+    id: string;
+    name: string;
+    component: ReAgentHostProvider['component'];
+    config: ReAgentHostProviderConfig | null;
+    setConfig: (config: ReAgentHostProviderConfig | null) => void;
+  }[];
 
   t: ReAgentTranslate;
   language: string;
@@ -175,6 +191,8 @@ export interface ReAgentProviderProps {
    * to run several independent agents on one page/origin.
    */
   storagePrefix?: string;
+  /** Host-injected LLM providers (own setup UI; config kept in memory only). */
+  hostProviders?: ReAgentHostProvider[];
   children: ReactNode;
 }
 
@@ -193,6 +211,7 @@ export function ReAgentProvider({
   renderMarkdown,
   uploadFile,
   storagePrefix,
+  hostProviders,
   children,
 }: ReAgentProviderProps) {
   const t = useMemo(() => translate ?? makeTranslator(messages), [translate, messages]);
@@ -315,6 +334,28 @@ export function ReAgentProvider({
         }
       }),
     [],
+  );
+
+  // Register host providers (and any already-signed-in config) before the model
+  // registry is first built, so their models are available immediately.
+  useState(() => {
+    const list = hostProviders ?? [];
+    registerHostProviders(list);
+    for (const provider of list) {
+      const initial = provider.getConfig?.();
+      if (initial !== undefined && initial !== null) {
+        setHostProviderConfig(provider.id, initial);
+      }
+    }
+    rebuildModels(prefix);
+    return true;
+  });
+  const setHostConfig = useCallback(
+    (id: string, next: ReAgentHostProviderConfig | null) => {
+      setHostProviderConfig(id, next);
+      rebuildModels(prefix);
+    },
+    [prefix],
   );
 
   const modelsVersion = useSyncExternalStore(
@@ -978,6 +1019,13 @@ export function ReAgentProvider({
     saveExaKey,
     toolLabels,
     webmcp: { available: hasWebMcp(), toolCount: webmcpTools.length, tools: webmcpTools },
+    hostProviders: (hostProviders ?? []).map(provider => ({
+      id: provider.id,
+      name: provider.name,
+      component: provider.component,
+      config: getHostProviderConfig(provider.id),
+      setConfig: (next: ReAgentHostProviderConfig | null) => setHostConfig(provider.id, next),
+    })),
     tools: listToolDescriptors(extraDescriptorsRef.current ?? [], {
       hasEditor: editor !== undefined && editor !== null,
       hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,

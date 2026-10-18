@@ -3,6 +3,7 @@ import { useLayoutEffect, useState } from 'react';
 
 import { CodeBlock } from '../components/CodeBlock';
 import { BatteriesDemo, prepareBatteriesDemo } from '../demos/BatteriesDemo';
+import { HostProviderDemo } from '../demos/HostProviderDemo';
 import { VanillaDemo } from '../demos/VanillaDemo';
 import { WebMcpDemo } from '../demos/WebMcpDemo';
 import {
@@ -15,6 +16,7 @@ import {
 import { cn } from '../lib/cn';
 import type { SiteTheme } from '../lib/theme';
 import batteriesSource from '../demos/BatteriesDemo.tsx?raw';
+import hostSource from '../demos/HostProviderDemo.tsx?raw';
 import vanillaSource from '../demos/VanillaDemo.tsx?raw';
 import webmcpSource from '../demos/WebMcpDemo.tsx?raw';
 
@@ -36,6 +38,12 @@ const TABS: { id: DemoMode; label: string; blurb: string }[] = [
     label: 'WebMCP',
     blurb:
       'The page exposes WebMCP tools; ReAgent auto-detects and uses them. Open Settings → WebMCP to see the tools.',
+  },
+  {
+    id: 'host',
+    label: 'Host provider',
+    blurb:
+      'A host-injected provider with its own setup UI. This demo is fake — no real LLM is contacted.',
   },
 ];
 
@@ -82,17 +90,27 @@ export function Demos({ theme }: { theme: SiteTheme }) {
   }
 
   const tab = TABS.find(entry => entry.id === active) ?? TABS[0];
-  const source =
-    active === 'vanilla' ? vanillaSource : active === 'batteries' ? batteriesSource : webmcpSource;
-  const Demo =
-    active === 'vanilla' ? VanillaDemo : active === 'batteries' ? BatteriesDemo : WebMcpDemo;
+  const SOURCES: Record<DemoMode, string> = {
+    vanilla: vanillaSource,
+    batteries: batteriesSource,
+    webmcp: webmcpSource,
+    host: hostSource,
+  };
+  const COMPONENTS: Record<DemoMode, typeof VanillaDemo> = {
+    vanilla: VanillaDemo,
+    batteries: BatteriesDemo,
+    webmcp: WebMcpDemo,
+    host: HostProviderDemo,
+  };
+  const source = SOURCES[active];
+  const Demo = COMPONENTS[active];
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Demos</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-          Three ways to use ReAgent. Each demo runs live and shows its exact source — open the
+          Several ways to use ReAgent. Each demo runs live and shows its exact source — open the
           settings gear to add a model key, then chat.
         </p>
       </header>
