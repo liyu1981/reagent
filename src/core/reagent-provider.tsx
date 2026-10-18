@@ -87,6 +87,8 @@ export interface ReAgentContextValue {
 
   status: 'idle' | 'streaming';
   streamingText: string;
+  /** Reasoning text streamed so far for the current turn. */
+  streamingThinking: string;
   isThinking: boolean;
   toolCalls: ToolChip[];
   error: string | null;
@@ -210,6 +212,7 @@ export function ReAgentProvider({
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [streamingText, setStreamingText] = useState('');
+  const [streamingThinking, setStreamingThinking] = useState('');
   const [isThinking, setIsThinking] = useState(false);
   const [toolChips, setToolChips] = useState<ToolChip[]>([]);
   const [expandedToolCalls, setExpandedToolCalls] = useState<Set<string>>(new Set());
@@ -420,6 +423,7 @@ export function ReAgentProvider({
           case 'message_start':
             if (event.message.role === 'assistant') {
               setStreamingText('');
+              setStreamingThinking('');
               setIsThinking(false);
             }
             patchActive([...instance.state.messages]);
@@ -430,6 +434,9 @@ export function ReAgentProvider({
               setStreamingText(prev => prev + ev.delta);
             } else if (ev.type === 'thinking_start') {
               setIsThinking(true);
+              setStreamingThinking('');
+            } else if (ev.type === 'thinking_delta') {
+              setStreamingThinking(prev => prev + ev.delta);
             } else if (ev.type === 'thinking_end') {
               setIsThinking(false);
             }
@@ -439,6 +446,7 @@ export function ReAgentProvider({
             patchActive([...instance.state.messages]);
             if (event.message.role === 'assistant') {
               setStreamingText('');
+              setStreamingThinking('');
               setIsThinking(false);
             }
             break;
@@ -944,6 +952,7 @@ export function ReAgentProvider({
     changeThinking,
     status: streaming ? 'streaming' : 'idle',
     streamingText,
+    streamingThinking,
     isThinking,
     toolCalls: toolChips,
     error,

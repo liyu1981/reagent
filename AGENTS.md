@@ -161,6 +161,11 @@ document; without it there is no editor UI and no editor tools.
 - The docs/demo site deploys via `.github/workflows/deploy-pages.yml` on push to
   `main` (build library → build site → upload `site/dist`). GitHub Pages must be
   set to **Source: GitHub Actions**.
+- **Write release notes by hand.** Do not publish a GitHub Release with the
+  default `--generate-notes` body (a bare `**Full Changelog**` link). Keep it a
+  short, user-facing summary with `Added` / `Changed` / `Fixed` bullets, then
+  `gh release create ... --notes-file`. Fix existing notes with
+  `gh release edit <tag> --notes-file`. See `RELEASING.md`.
 
 ## Conventions
 

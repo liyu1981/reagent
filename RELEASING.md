@@ -52,12 +52,21 @@ npm version patch --no-git-tag-version   # or minor / major
 git commit -am "chore: release v$(node -p "require('./package.json').version")"
 git push
 
-# 2. Create the GitHub Release. This triggers the publish workflow.
-gh release create "v$(node -p "require('./package.json').version")" --generate-notes
+# 2. Create the GitHub Release with concise, written notes.
+tag="v$(node -p "require('./package.json').version")"
+gh release create "$tag" --title "$tag" --notes "Added / Changed / Fixed summary…"
 ```
 
 The workflow then installs, typechecks, builds, checks the tag against
 `package.json`, and runs `npm publish --access public --provenance`.
+
+### Release notes
+
+Write the release body yourself — do **not** leave the default
+`--generate-notes` output (a bare `**Full Changelog**` link). Keep it short and
+skimmable: a one-line summary, then `Added` / `Changed` / `Fixed` bullets aimed
+at users of the package, not a raw commit list. Existing releases can be fixed
+later with `gh release edit <tag> --notes-file <file>`.
 
 ## Manual publish
 

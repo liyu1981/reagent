@@ -1,6 +1,7 @@
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { ToolCall } from '@earendil-works/pi-ai';
 import { Bot, ChevronDown, GitBranch, Sparkles, X } from 'lucide-react';
+import { useState } from 'react';
 import { useReAgent } from '../core/hooks';
 import { useMarkdown, useResolvedTheme, useTranslation } from '../core/i18n';
 import { cn } from '../lib/utils';
@@ -32,6 +33,17 @@ function toolCallBlocks(message: AgentMessage): ToolCall[] {
     return [];
   }
   return message.content.filter((block): block is ToolCall => block.type === 'toolCall');
+}
+
+/** The assistant's reasoning blocks, joined. */
+export function messageThinking(message: AgentMessage): string {
+  if (message.role !== 'assistant') {
+    return '';
+  }
+  return message.content
+    .filter((block): block is { type: 'thinking'; thinking: string } => block.type === 'thinking')
+    .map(block => block.thinking)
+    .join('\n\n');
 }
 
 export interface ReAgentMessageProps {
@@ -94,7 +106,8 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
 
   const text = messageText(message);
   const calledTools = toolCallBlocks(message);
-  if (text === '' && calledTools.length === 0) {
+  const reasoning = messageThinking(message);
+  if (text === '' && calledTools.length === 0 && reasoning === '') {
     return null;
   }
 
@@ -104,6 +117,7 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
         <Bot className="size-3.5 text-muted-foreground" />
       </div>
       <div className="min-w-0 max-w-[88%] space-y-1.5">
+        {reasoning !== '' && <ReAgentThinking content={reasoning} />}
         {text !== '' && (
           <div className="glass-control-opaque rounded-2xl px-3 py-2">
             <Markdown content={text} theme={resolvedTheme} />
@@ -121,6 +135,31 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
         ))}
       </div>
       <BranchButton onClick={branchFromHere} label={t('agent.sessionBranchFromHere')} />
+    </div>
+  );
+}
+
+/** Collapsible disclosure for an assistant message's reasoning. */
+export function ReAgentThinking({ content, className }: { content: string; className?: string }) {
+  const { t } = useTranslation();
+  const [expanded, setExpanded] = useState(false);
+  return (
+    <div className={cn('space-y-1', className)}>
+      <button
+        type="button"
+        onClick={() => setExpanded(prev => !prev)}
+        aria-expanded={expanded}
+        className="flex items-center gap-1.5 rounded-lg px-1 py-0.5 text-xs text-muted-foreground transition hover:text-foreground"
+      >
+        <Sparkles className="size-3" />
+        {expanded ? t('agent.hideThinking') : t('agent.showThinking')}
+        <ChevronDown className={cn('size-3 transition-transform', expanded && 'rotate-180')} />
+      </button>
+      {expanded && (
+        <pre className="thin-scrollbar max-h-64 overflow-y-auto whitespace-pre-wrap rounded-xl border border-border/40 bg-muted/30 px-3 py-2 font-sans text-xs leading-relaxed text-muted-foreground">
+          {content}
+        </pre>
+      )}
     </div>
   );
 }

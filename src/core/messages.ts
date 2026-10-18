@@ -147,6 +147,8 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.systemPrompt':
     "You are a helpful AI assistant embedded in a web application. Answer the user's questions clearly and concisely, and use the tools available to you when they help. If a request is ambiguous, ask a brief clarifying question instead of guessing. Answer in {{language}}.",
   'agent.tagReasoning': 'reasoning',
+  'agent.showThinking': 'Show reasoning',
+  'agent.hideThinking': 'Hide reasoning',
   'agent.tagVision': 'vision',
   'agent.testConnection': 'Test',
   'agent.testCorsFailed':

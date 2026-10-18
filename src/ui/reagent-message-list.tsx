@@ -1,7 +1,7 @@
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
-import { Bot, Loader2 } from 'lucide-react';
+import { Bot, ChevronDown, Loader2 } from 'lucide-react';
 import type { ComponentProps, ReactNode } from 'react';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
 import { cn } from '../lib/utils';
@@ -21,6 +21,7 @@ export function ReAgentMessageList({
     activeSession,
     models,
     streamingText,
+    streamingThinking,
     isThinking,
     toolCalls,
     error,
@@ -29,6 +30,7 @@ export function ReAgentMessageList({
   } = useReAgent();
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [thinkingExpanded, setThinkingExpanded] = useState(false);
   const messages = activeSession?.messages ?? [];
 
   const toolResults = useMemo(() => {
@@ -78,9 +80,24 @@ export function ReAgentMessageList({
       )}
 
       {isThinking && streamingText === '' && (
-        <div className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground">
-          <Loader2 className="size-3 animate-spin" />
-          {t('agent.thinking')}
+        <div className="space-y-1">
+          <button
+            type="button"
+            onClick={() => setThinkingExpanded(prev => !prev)}
+            aria-expanded={thinkingExpanded}
+            className="flex items-center gap-1.5 px-1 text-xs text-muted-foreground transition hover:text-foreground"
+          >
+            <Loader2 className="size-3 animate-spin" />
+            {t('agent.thinking')}
+            <ChevronDown
+              className={cn('size-3 transition-transform', thinkingExpanded && 'rotate-180')}
+            />
+          </button>
+          {thinkingExpanded && streamingThinking !== '' && (
+            <pre className="thin-scrollbar max-h-48 overflow-y-auto whitespace-pre-wrap rounded-xl border border-border/40 bg-muted/40 px-3 py-2 font-sans text-xs leading-relaxed text-muted-foreground">
+              {streamingThinking}
+            </pre>
+          )}
         </div>
       )}
 
