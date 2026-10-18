@@ -1,6 +1,6 @@
 import { installWebMCP } from '@mcp-b/webmcp-polyfill';
 import { ReAgent } from '@liyu1981/reagent';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 
 import { AgentMarkdown } from '../components/Markdown';
 
@@ -20,8 +20,6 @@ installWebMCP();
  * ReAgent auto-detects them and hands them to the model — no props needed.
  */
 export function WebMcpDemo({ theme, surface = 'glass', notify }: DemoProps) {
-  const [toolCount, setToolCount] = useState(0);
-
   useEffect(() => {
     const context = document.modelContext;
     if (context === undefined) {
@@ -53,30 +51,11 @@ export function WebMcpDemo({ theme, surface = 'glass', notify }: DemoProps) {
         },
         { signal: controller.signal },
       );
-      setToolCount((await context.getTools()).length);
     };
 
     void register();
     return () => controller.abort();
   }, []);
 
-  return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b border-border/60 px-3 py-2 text-xs text-muted-foreground">
-        <span
-          className={
-            toolCount > 0
-              ? 'size-2 rounded-full bg-emerald-500'
-              : 'size-2 rounded-full bg-muted-foreground/50'
-          }
-        />
-        {toolCount > 0
-          ? `WebMCP active — ${toolCount} page tool${toolCount === 1 ? '' : 's'} exposed to the agent`
-          : 'WebMCP unavailable in this browser'}
-      </div>
-      <div className="min-h-0 flex-1">
-        <ReAgent theme={theme} surface={surface} renderMarkdown={AgentMarkdown} notify={notify} />
-      </div>
-    </div>
-  );
+  return <ReAgent theme={theme} surface={surface} renderMarkdown={AgentMarkdown} notify={notify} />;
 }

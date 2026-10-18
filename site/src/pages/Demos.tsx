@@ -34,7 +34,8 @@ const TABS: { id: DemoMode; label: string; blurb: string }[] = [
   {
     id: 'webmcp',
     label: 'WebMCP',
-    blurb: 'The page exposes WebMCP tools; ReAgent auto-detects and uses them.',
+    blurb:
+      'The page exposes WebMCP tools; ReAgent auto-detects and uses them. Open Settings → WebMCP to see the tools.',
   },
 ];
 
