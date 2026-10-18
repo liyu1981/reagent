@@ -9,11 +9,20 @@ export function ReAgentPromptPanel() {
   const { t, i18n } = useTranslation();
   const toast = useToast();
   const language = i18n.language?.startsWith('zh') ? 'Chinese' : 'English';
+  const builtIn = t('agent.systemPrompt', { language });
   const [value, setValue] = useState(config.systemPrompt.custom);
 
+  // No saved prompt yet: prefill and persist the built-in one, so the field
+  // always shows the instructions the agent actually uses.
   useEffect(() => {
-    setValue(config.systemPrompt.custom);
-  }, [config.systemPrompt.custom]);
+    const custom = config.systemPrompt.custom;
+    if (custom.trim() === '') {
+      setValue(builtIn);
+      update({ systemPrompt: { mode: 'custom', custom: builtIn } });
+    } else {
+      setValue(custom);
+    }
+  }, [config.systemPrompt.custom, builtIn, update]);
 
   const handleSave = () => {
     if (value.trim() === '') {
@@ -48,11 +57,7 @@ export function ReAgentPromptPanel() {
         <Button size="sm" onClick={handleSave}>
           {t('agent.save')}
         </Button>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setValue(t('agent.systemPrompt', { language }))}
-        >
+        <Button size="sm" variant="outline" onClick={() => setValue(builtIn)}>
           {t('agent.customPromptLoadDefault')}
         </Button>
         <Button size="sm" variant="ghost" onClick={handleReset}>

@@ -118,7 +118,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.settingsTabMcp': 'MCP',
   'agent.settingsTabWebmcp': 'WebMCP',
   'agent.settingsTabModel': 'Model',
-  'agent.settingsTabPrompt': 'Prompt',
+  'agent.settingsTabPrompt': 'System prompt',
   'agent.settingsTabSkills': 'Skills',
   'agent.settingsTabTools': 'Tools',
   'agent.settingsTitle': 'Agent settings',
