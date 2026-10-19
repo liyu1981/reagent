@@ -75,19 +75,12 @@ const fakeProvider: ReAgentHostProvider = {
 
 export function HostProviderDemo({ theme, surface = 'glass', notify }: DemoProps) {
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="border-b border-border/60 px-3 py-2 text-xs text-amber-600 dark:text-amber-400">
-        ⚠️ This demo uses a fake host-injected provider — no real LLM is contacted.
-      </div>
-      <div className="min-h-0 flex-1">
-        <ReAgent
-          theme={theme}
-          surface={surface}
-          renderMarkdown={AgentMarkdown}
-          hostProviders={[fakeProvider]}
-          notify={notify}
-        />
-      </div>
-    </div>
+    <ReAgent
+      theme={theme}
+      surface={surface}
+      renderMarkdown={AgentMarkdown}
+      hostProviders={[fakeProvider]}
+      notify={notify}
+    />
   );
 }
