@@ -26,6 +26,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.clearSelection': 'Clear selection',
   'agent.close': 'Close',
   'agent.connected': 'Connected · {{model}}',
+  'agent.contextUsageTooltip': 'Used {{used}} tokens · context window {{window}} tokens',
   'agent.customLocalLlm': 'Custom Local LLM (OpenAI compatible)',
   'agent.customPromptCleared': 'Using the built-in system prompt.',
   'agent.customPromptDescription':

@@ -33,6 +33,7 @@ import {
   ReAgentComposerRow,
   ReAgentComposerSelectionChip,
   ReAgentComposerStatus,
+  ReAgentContextMeter,
   ReAgentModelPicker,
   ReAgentSendButton,
   ReAgentThinkingPicker,
@@ -177,6 +178,7 @@ function ReAgentChrome({
                 <ReAgentComposerAttach />
                 <div className="flex items-center gap-1.5">
                   <ReAgentComposerStatus />
+                  <ReAgentContextMeter />
                   <ReAgentThinkingPicker />
                   <ReAgentModelPicker />
                   <ReAgentSendButton />

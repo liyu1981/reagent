@@ -28,6 +28,7 @@ import {
 } from '../primitives/dropdown-menu';
 import { Input } from '../primitives/input';
 import { Popover, PopoverContent, PopoverTrigger } from '../primitives/popover';
+import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip';
 
 const THINKING_LEVELS: ThinkingLevel[] = ['off', 'low', 'medium', 'high'];
 const SELECTION_PREVIEW_MAX = 400;
@@ -242,6 +243,56 @@ export function ReAgentComposerStatus({ className, ...props }: ComponentProps<'d
     <div className={cn('flex items-center', className)} {...props}>
       <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
     </div>
+  );
+}
+
+function formatTokenCount(value: number): string {
+  if (value >= 1_000_000) {
+    return `${(value / 1_000_000).toFixed(1)}M`;
+  }
+  if (value >= 1_000) {
+    return `${Math.round(value / 1_000)}K`;
+  }
+  return String(value);
+}
+
+export function ReAgentContextMeter({ className, ...props }: ComponentProps<'div'>) {
+  const { activeSession, activeModel } = useReAgent();
+  const { t } = useTranslation();
+  const used = useMemo(() => {
+    const messages = activeSession?.messages ?? [];
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+      const message = messages[index];
+      if (message.role === 'assistant' && 'usage' in message && message.usage.totalTokens > 0) {
+        return message.usage.totalTokens;
+      }
+    }
+    return 0;
+  }, [activeSession]);
+  const contextWindow = activeModel?.contextWindow ?? 0;
+  if (used === 0 || contextWindow === 0) {
+    return null;
+  }
+  const percent = (used / contextWindow) * 100;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <div
+          {...props}
+          data-slot="reagent-context-meter"
+          className={cn(
+            'px-1 font-mono text-[11px] tabular-nums text-muted-foreground',
+            percent >= 90 && 'text-destructive',
+            className,
+          )}
+        >
+          {percent.toFixed(1)}%/{formatTokenCount(contextWindow)}
+        </div>
+      </TooltipTrigger>
+      <TooltipContent side="top">
+        {t('agent.contextUsageTooltip', { used, window: contextWindow })}
+      </TooltipContent>
+    </Tooltip>
   );
 }
 

@@ -53,7 +53,7 @@ required visual style of their own.
 | `ReAgentHeader` + `ReAgentSessionTreeTrigger`, `ReAgentNewSessionButton`, `ReAgentSettingsTrigger`, `ReAgentCloseButton`, `ReAgentForkButton`, `ReAgentSessionTitle` | Header controls. |
 | `ReAgentMessageList` | Scrollable transcript. |
 | `ReAgentMessage`, `ReAgentToolCall`, `ReAgentToolChip`, `messageText` | Message rendering primitives. |
-| `ReAgentComposer` + `ReAgentComposerInput`, `ReAgentComposerRow`, `ReAgentComposerAttach`, `ReAgentComposerAttachments`, `ReAgentComposerSelectionChip`, `ReAgentComposerStatus`, `ReAgentModelPicker`, `ReAgentThinkingPicker`, `ReAgentSendButton` | The composer and its controls. |
+| `ReAgentComposer` + `ReAgentComposerInput`, `ReAgentComposerRow`, `ReAgentComposerAttach`, `ReAgentComposerAttachments`, `ReAgentComposerSelectionChip`, `ReAgentComposerStatus`, `ReAgentContextMeter`, `ReAgentModelPicker`, `ReAgentThinkingPicker`, `ReAgentSendButton` | The composer and its controls. |
 | `ReAgentSessionsView` | Conversation-tree browser. |
 | `ReAgentSettingsView` + `ReAgentModelPanel`, `ReAgentPromptPanel`, `ReAgentSkillsPanel`, `ReAgentToolsPanel`, `ReAgentMcpPanel` | Settings tabs. |
 
