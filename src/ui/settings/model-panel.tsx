@@ -1,10 +1,11 @@
 import { Check, ChevronsUpDown, KeyRound, Loader2, RefreshCw, X } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useReAgent } from '../../core/hooks';
 import { useToast, useTranslation } from '../../core/i18n';
 import {
   clearApiKey,
   getModels,
+  getModelsVersion,
   getOllamaBaseUrl,
   hasCredential,
   isVerified,
@@ -12,6 +13,7 @@ import {
   refreshModels,
   saveApiKey,
   setOllamaBaseUrl,
+  subscribeModels,
   testConnection,
 } from '../../core/models';
 import { cn } from '../../lib/utils';
@@ -125,12 +127,21 @@ export function ReAgentModelPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const { storagePrefix, hostProviders } = useReAgent();
+  // Recompute when the registry changes (custom providers added/removed, the
+  // Ollama base URL changed, …).
+  const modelsVersion = useSyncExternalStore(
+    useCallback(
+      (listener: () => void) => subscribeModels(listener, storagePrefix),
+      [storagePrefix],
+    ),
+    useCallback(() => getModelsVersion(storagePrefix), [storagePrefix]),
+  );
   const providers = useMemo(
     () =>
       getModels(storagePrefix)
         .getProviders()
         .map(provider => ({ id: provider.id, name: provider.name })),
-    [storagePrefix],
+    [storagePrefix, modelsVersion],
   );
   const cloudProviders = useMemo(
     () => providers.filter(provider => provider.id !== OLLAMA_PROVIDER_ID),

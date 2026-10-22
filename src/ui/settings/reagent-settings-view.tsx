@@ -3,6 +3,7 @@ import { useReAgent } from '../../core/hooks';
 import { useTranslation } from '../../core/i18n';
 import { Button } from '../../primitives/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../primitives/tabs';
+import { ReAgentGeneralPanel } from './general-panel';
 import { ReAgentMcpPanel } from './mcp-panel';
 import { ReAgentModelPanel } from './model-panel';
 import { ReAgentPromptPanel } from './prompt-panel';
@@ -44,6 +45,7 @@ export function ReAgentSettingsView() {
       <Tabs defaultValue="model" className="min-h-0 flex-1 gap-2">
         <div className="px-3 pt-2">
           <TabsList className="flex-wrap">
+            <TabsTrigger value="general">{t('agent.settingsTabGeneral')}</TabsTrigger>
             <TabsTrigger value="model">{t('agent.settingsTabModel')}</TabsTrigger>
             <TabsTrigger value="prompt">{t('agent.settingsTabPrompt')}</TabsTrigger>
             <TabsTrigger value="skills">{t('agent.settingsTabSkills')}</TabsTrigger>
@@ -56,6 +58,9 @@ export function ReAgentSettingsView() {
           data-slot="reagent-settings-content"
           className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-3 pb-3"
         >
+          <TabsContent value="general">
+            <ReAgentGeneralPanel />
+          </TabsContent>
           <TabsContent value="model">
             <ReAgentModelPanel />
           </TabsContent>

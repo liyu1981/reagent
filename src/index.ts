@@ -20,17 +20,26 @@ export {
 } from './core/mcp';
 export * from './core/messages';
 export {
+  addCustomCloudProvider,
   BROWSER_SUPPORTED_PROVIDERS,
+  buildCustomProvider,
   clearApiKey,
   getModel,
   getModels,
+  getCustomCloudProviders,
+  getKeyRetention,
   getOllamaBaseUrl,
   hasCredential,
   isVerified,
   listAvailableModels,
+  listBuiltinCloudProviders,
+  pruneExpiredCredentials,
   rebuildModels,
   refreshModels,
+  removeCustomCloudProvider,
   saveApiKey,
+  setCustomCloudProviders,
+  setKeyRetention,
   setOllamaBaseUrl,
   testConnection,
 } from './core/models';
@@ -50,6 +59,7 @@ export * from './ui/reagent-message';
 export * from './ui/reagent-message-list';
 export * from './ui/reagent-root';
 export * from './ui/reagent-sessions-view';
+export * from './ui/settings/general-panel';
 export * from './ui/settings/mcp-panel';
 export * from './ui/settings/model-panel';
 export * from './ui/settings/prompt-panel';

@@ -1,8 +1,14 @@
 import type { ThinkingLevel } from '@earendil-works/pi-agent-core';
 
 import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
-import type { AgentConfig, AgentSkillConfig, McpServerConfig } from './types';
-import { DEFAULT_OLLAMA_BASE_URL } from './types';
+import type {
+  AgentConfig,
+  AgentSkillConfig,
+  McpServerConfig,
+  ReAgentCloudModelSpec,
+  ReAgentCloudProviderSpec,
+} from './types';
+import { DEFAULT_KEY_RETENTION_MS, DEFAULT_OLLAMA_BASE_URL } from './types';
 
 /**
  * The single source of truth for every agent knob that used to be scattered
@@ -22,6 +28,8 @@ export function defaultAgentConfig(): AgentConfig {
     model: null,
     thinkingLevel: 'low',
     providers: { ollama: { baseUrl: DEFAULT_OLLAMA_BASE_URL } },
+    keyRetentionMs: DEFAULT_KEY_RETENTION_MS,
+    customProviders: [],
     systemPrompt: { mode: 'default', custom: '' },
     skills: [],
     skillsDisabledBuiltins: [],
@@ -54,6 +62,53 @@ function isSkillConfig(value: unknown): value is AgentSkillConfig {
   );
 }
 
+function isCustomModel(value: unknown): value is string | ReAgentCloudModelSpec {
+  if (typeof value === 'string') {
+    return value.trim() !== '';
+  }
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  return typeof (value as ReAgentCloudModelSpec).id === 'string';
+}
+
+function isCustomProviderSpec(value: unknown): value is ReAgentCloudProviderSpec {
+  if (value === null || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<ReAgentCloudProviderSpec>;
+  if (typeof candidate.id !== 'string' || candidate.id.trim() === '') {
+    return false;
+  }
+  if (
+    candidate.api !== undefined &&
+    candidate.api !== 'openai-completions' &&
+    candidate.api !== 'openai-responses' &&
+    candidate.api !== 'anthropic-messages'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/** Validate, filter and de-duplicate (first entry wins) custom provider specs. */
+export function normalizeCustomProviders(raw: unknown): ReAgentCloudProviderSpec[] {
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+  const seen = new Set<string>();
+  const out: ReAgentCloudProviderSpec[] = [];
+  for (const entry of raw) {
+    if (!isCustomProviderSpec(entry) || seen.has(entry.id)) {
+      continue;
+    }
+    seen.add(entry.id);
+    const models = Array.isArray(entry.models) ? entry.models.filter(isCustomModel) : undefined;
+    out.push({ ...entry, models });
+  }
+  return out;
+}
+
 function normalize(raw: Partial<AgentConfig> | undefined): AgentConfig {
   const base = defaultAgentConfig();
   if (raw === undefined) {
@@ -76,6 +131,15 @@ function normalize(raw: Partial<AgentConfig> | undefined): AgentConfig {
     model: raw.model ?? null,
     thinkingLevel: (raw.thinkingLevel ?? base.thinkingLevel) as ThinkingLevel,
     providers,
+    keyRetentionMs:
+      raw.keyRetentionMs === null
+        ? null
+        : typeof raw.keyRetentionMs === 'number' &&
+            Number.isFinite(raw.keyRetentionMs) &&
+            raw.keyRetentionMs > 0
+          ? raw.keyRetentionMs
+          : base.keyRetentionMs,
+    customProviders: normalizeCustomProviders(raw.customProviders),
     systemPrompt: {
       mode: raw.systemPrompt?.mode === 'custom' ? 'custom' : 'default',
       custom: typeof raw.systemPrompt?.custom === 'string' ? raw.systemPrompt.custom : '',

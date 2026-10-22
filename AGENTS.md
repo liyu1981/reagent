@@ -50,8 +50,8 @@ src/                    the library (published as @liyu1981/reagent)
                         skill-registry, tools, prompt, agent, attachments,
                         messages, i18n, reagent-provider, hooks
   ui/                   ReAgent UI parts + the styled <ReAgent> preset
-    settings/           in-component settings view (model/prompt/skills/
-                        tools/mcp panels)
+    settings/           in-component settings view (general/model/prompt/
+                        skills/tools/mcp panels)
   primitives/           small Radix-based UI primitives (button, dialog, …)
   lib/utils.ts          cn() helper
   index.ts              the public barrel (only what is exported here is API)
@@ -84,13 +84,20 @@ site/                   Vite demo + documentation site (GitHub Pages)
   (`<prefix>.config`), read through a tiny external store
   (`getAgentConfig`/`updateAgentConfig`/`subscribeAgentConfig`). Legacy
   per-feature keys are migrated once at load. API keys are per-provider in
-  `localStorage`; sessions are in IndexedDB (`reagent-agent`, v2).
+  `localStorage`; sessions are in IndexedDB (`reagent-agent`, v2). The snapshot
+  also holds `keyRetentionMs` (stored API-key lifetime, default 7 days, `null`
+  = keep forever; enforced by `pruneExpiredCredentials` and at credential-read
+  time) and `customProviders` (extra cloud providers, see below).
 - **Providers** come from `pi-ai`: `openai`, `anthropic`, `openrouter`,
   `deepseek`, `groq`, plus an OpenAI-compatible `ollama` entry. Only providers
   whose connection was verified with `testConnection()` contribute models to
   `listAvailableModels()`; `models.ts` has a small external store
   (`subscribeModels`/`getModelsVersion`) so the UI recomputes when the registry
-  is rebuilt or refreshed.
+  is rebuilt or refreshed. **Custom cloud providers** (`addCustomCloudProvider`)
+  extend that: an id-only spec re-enables any pi-ai built-in, a spec with
+  `baseUrl` defines a new OpenAI/Anthropic-compatible endpoint; both are
+  persisted in `config.customProviders` and registered by `buildModels`. The
+  docs site's browser-support page has a provider test bench on top of it.
 - **Defaults are intentionally empty.** A bare `<ReAgent />` has **no tools, no
   skills and no MCP servers**, and a generic system prompt:
   - `tools.ts` — `EDITOR_TOOLS` are built *and listed* only when an

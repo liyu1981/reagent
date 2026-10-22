@@ -18,7 +18,9 @@ bundled catalog until the next test/refresh.
 ## Providers
 
 ReAgent registers the providers listed in `BROWSER_SUPPORTED_PROVIDERS` (only
-`openrouter` today) plus one custom OpenAI-compatible endpoint:
+`openrouter` today) plus one custom OpenAI-compatible endpoint — and, on top of
+that, any [custom cloud provider](#custom-cloud-providers) the host or user
+registers:
 
 | Provider id | Notes |
 | ----------- | ----- |
@@ -26,6 +28,49 @@ ReAgent registers the providers listed in `BROWSER_SUPPORTED_PROVIDERS` (only
 | `ollama` | Custom local/OpenAI-compatible endpoint; defaults to `http://localhost:11434`, usually no key. |
 
 The auth formats and notes below are reference material for the full pi-ai set.
+
+## Custom cloud providers
+
+Any other provider can be registered at runtime with **custom cloud
+providers**, in pi-ai's provider vocabulary. A spec is either just an id —
+re-enabling the pi-ai built-in of that id — or a full definition with a
+`baseUrl`, `api` and `models`:
+
+```ts
+import {
+  addCustomCloudProvider,
+  getCustomCloudProviders,
+  listBuiltinCloudProviders,
+  removeCustomCloudProvider,
+  setCustomCloudProviders,
+} from '@liyu1981/reagent';
+
+// Re-enable a pi-ai built-in (needs a key + Test before its models appear).
+addCustomCloudProvider({ id: 'anthropic' });
+
+// Add an OpenAI/Anthropic-compatible endpoint pi-ai does not know.
+addCustomCloudProvider({
+  id: 'my-proxy',
+  name: 'My proxy',
+  baseUrl: 'https://llm.example.com/v1',
+  api: 'openai-completions', // or 'openai-responses' / 'anthropic-messages'
+  models: [
+    'fast',
+    { id: 'smart', contextWindow: 200_000, maxTokens: 64_000, reasoning: true },
+  ],
+});
+
+listBuiltinCloudProviders(); // every provider pi-ai ships, as { id, name }
+getCustomCloudProviders();   // the current set (persisted in the agent config)
+removeCustomCloudProvider('my-proxy');
+setCustomCloudProviders([]); // replace the whole set
+```
+
+Custom providers join the model registry like any other: they appear in
+**Settings → Model**, contribute models only after a saved key plus a
+successful **Test**, and survive reloads. The docs page
+[Browser support & cloud providers](./browser-support) ships a test bench that
+re-enables every built-in provider through this API.
 
 ## Auth format per provider
 
@@ -71,6 +116,22 @@ import { clearApiKey, hasCredential, saveApiKey } from '@liyu1981/reagent';
 await saveApiKey('openai', 'sk-…');
 hasCredential('openai'); // true
 await clearApiKey('openai');
+```
+
+### Key retention
+
+Every saved key is stamped with its save time and deleted once it outlives the
+retention window — **Settings → General → API key retention**, default 7 days.
+An expired key also un-verifies its provider, so its models disappear until a
+new key is saved and tested. The "Keep forever" option is opt-in behind a
+warning and a second confirmation.
+
+```ts
+import { getKeyRetention, pruneExpiredCredentials, setKeyRetention } from '@liyu1981/reagent';
+
+getKeyRetention(); // 604800000 (7 days), or null = keep forever
+setKeyRetention(24 * 60 * 60 * 1000); // 24 hours — keys outside it are removed now
+pruneExpiredCredentials(); // force a sweep without changing the window
 ```
 
 For a local, keyless model set the base URL:

@@ -39,6 +39,7 @@ import {
   getModelsVersion,
   listAvailableModels,
   OLLAMA_PROVIDER_ID,
+  pruneExpiredCredentials,
   rebuildModels,
   refreshModels,
   subscribeModels,
@@ -362,6 +363,12 @@ export function ReAgentProvider({
     useCallback((listener: () => void) => subscribeModels(listener, prefix), [prefix]),
     useCallback(() => getModelsVersion(prefix), [prefix]),
   );
+
+  // Drop API keys that outlived the retention window — on mount and whenever
+  // the window changes — so expired keys also unverify their provider.
+  useEffect(() => {
+    pruneExpiredCredentials(prefix);
+  }, [prefix, config.keyRetentionMs]);
   const models = useMemo(() => listAvailableModels(prefix), [config, modelsVersion, prefix]);
 
   const activeSession = sessions.find(session => session.id === config.activeSessionId) ?? null;

@@ -69,7 +69,21 @@ allows browser (CORS) requests.
 | Z.AI Coding CN (`zai-coding-cn`) | ❓ To be tested | |
 
 Only the providers in `BROWSER_SUPPORTED_PROVIDERS` (`@liyu1981/reagent`) are
-registered; everything else is hidden from **Settings → Model**.
+registered by default; everything else is hidden from **Settings → Model**
+unless it is [re-enabled as a custom cloud provider](./models).
+
+## Testing providers from this page
+
+The **provider test bench** below (on the docs site) re-enables any pi-ai
+built-in on the fly through ReAgent's custom-provider API
+(`addCustomCloudProvider({ id })`), so checking a gateway needs no code change:
+paste a key, hit **Test**, and the result tells you whether the browser may
+talk to it. A successful test marks the provider verified and its models show
+up in **Settings → Model** of the demos.
+
+- **Enable all** / **Disable all** toggle the whole built-in set at once.
+- Keys saved here follow **Settings → General → API key retention** in any
+  ReAgent on the same storage prefix.
 
 ## What still works
 
@@ -84,6 +98,7 @@ Browser-direct calls to a gateway that does not send CORS headers cannot be
 fixed in client code. Such a provider needs a **backend/proxy** that performs
 the request server-side (CORS does not apply to server-to-server traffic) and
 returns the response to the page. When that exists, add the provider to
-`BROWSER_SUPPORTED_PROVIDERS`.
+`BROWSER_SUPPORTED_PROVIDERS` — or, with a proxy of your own, register it as a
+custom provider with a `baseUrl` ([Models & providers](./models)).
 
 Next: [Models & providers](./models) →

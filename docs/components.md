@@ -55,7 +55,7 @@ required visual style of their own.
 | `ReAgentMessage`, `ReAgentToolCall`, `ReAgentToolChip`, `messageText` | Message rendering primitives. |
 | `ReAgentComposer` + `ReAgentComposerInput`, `ReAgentComposerRow`, `ReAgentComposerAttach`, `ReAgentComposerAttachments`, `ReAgentComposerSelectionChip`, `ReAgentComposerStatus`, `ReAgentContextMeter`, `ReAgentModelPicker`, `ReAgentThinkingPicker`, `ReAgentSendButton` | The composer and its controls. |
 | `ReAgentSessionsView` | Conversation-tree browser. |
-| `ReAgentSettingsView` + `ReAgentModelPanel`, `ReAgentPromptPanel`, `ReAgentSkillsPanel`, `ReAgentToolsPanel`, `ReAgentMcpPanel` | Settings tabs. |
+| `ReAgentSettingsView` + `ReAgentGeneralPanel`, `ReAgentModelPanel`, `ReAgentPromptPanel`, `ReAgentSkillsPanel`, `ReAgentToolsPanel`, `ReAgentMcpPanel`, `ReAgentWebMcpPanel` | Settings tabs. |
 
 Because these call `useReAgent()`, they must be rendered inside a
 `ReAgentProvider` (the presets already are).

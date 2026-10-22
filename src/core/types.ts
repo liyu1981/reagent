@@ -1,10 +1,13 @@
 import type { AgentMessage, AgentTool, ThinkingLevel } from '@earendil-works/pi-agent-core';
 
 import type { EditorMutationBridge } from './editor-mutations';
+import type { ReAgentHostProviderApi } from './host-providers';
 
 export const OLLAMA_PROVIDER_ID = 'ollama';
 export const EXA_SERVER_ID = 'exa';
 export const DEFAULT_OLLAMA_BASE_URL = 'http://localhost:11434';
+/** Default lifetime of stored API keys; `null` (keep forever) is opt-in. */
+export const DEFAULT_KEY_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface AgentModelRef {
   providerId: string;
@@ -14,6 +17,34 @@ export interface AgentModelRef {
 export interface AgentProviderSettings {
   baseUrl?: string;
   verified?: boolean;
+}
+
+export interface ReAgentCloudModelSpec {
+  id: string;
+  name?: string;
+  contextWindow?: number;
+  maxTokens?: number;
+  reasoning?: boolean;
+}
+
+/**
+ * A cloud provider the host (or the end user) adds on top of ReAgent's
+ * browser-verified set, in pi-ai's provider vocabulary. With only an `id` the
+ * spec re-enables pi-ai's built-in provider of that id; with a `baseUrl` it
+ * defines a new OpenAI/Anthropic-compatible endpoint. Stored in the agent
+ * config, so it survives reloads.
+ */
+export interface ReAgentCloudProviderSpec {
+  /** Unique provider id. Without `baseUrl` it must match a pi-ai built-in. */
+  id: string;
+  /** Display name in the model picker. Defaults to the id. */
+  name?: string;
+  /** Base URL of an OpenAI/Anthropic-compatible endpoint (creates a provider). */
+  baseUrl?: string;
+  /** Request shape of the endpoint. Defaults to `openai-completions`. */
+  api?: ReAgentHostProviderApi;
+  /** Static model ids (or entries); the live `/models` listing refreshes them. */
+  models?: Array<string | ReAgentCloudModelSpec>;
 }
 
 export interface AgentSkillConfig {
@@ -41,6 +72,10 @@ export interface AgentConfig {
   model: AgentModelRef | null;
   thinkingLevel: ThinkingLevel;
   providers: Record<string, AgentProviderSettings>;
+  /** Lifetime of stored API keys in ms, or `null` to keep them forever. */
+  keyRetentionMs: number | null;
+  /** Extra cloud providers registered into the model registry. */
+  customProviders: ReAgentCloudProviderSpec[];
   systemPrompt: AgentSystemPromptConfig;
   skills: AgentSkillConfig[];
   skillsDisabledBuiltins: string[];

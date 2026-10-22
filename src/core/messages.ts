@@ -19,6 +19,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.active': 'Active',
   'agent.apiKeyPlaceholder': 'Enter API key…',
   'agent.chatPlaceholder': 'Ask the agent…',
+  'agent.cancel': 'Cancel',
   'agent.clearKey': 'Clear key',
   'agent.cloudProviders': 'Cloud providers',
   'agent.cloudProvidersDisabled':
@@ -47,6 +48,20 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.keyCleared': 'API key cleared.',
   'agent.keySaved': 'API key saved.',
   'agent.keySet': 'Set',
+  'agent.keyRetention1d': '24 hours',
+  'agent.keyRetention1h': '1 hour',
+  'agent.keyRetention30d': '30 days',
+  'agent.keyRetention7d': '7 days',
+  'agent.keyRetentionDescription':
+    'API keys saved in this browser are removed automatically after the selected time. The provider is then unverified and needs a new key and test. Keys are stored only in this browser and sent only to the provider you choose.',
+  'agent.keyRetentionForever': 'Keep forever',
+  'agent.keyRetentionForeverConfirm': 'Keep forever',
+  'agent.keyRetentionForeverTitle': 'Keep API keys forever?',
+  'agent.keyRetentionForeverWarning':
+    'Saved keys would stay in this browser until you clear them manually — anyone with access to this browser profile could use them. Prefer a shorter retention time unless you have a specific reason not to.',
+  'agent.keyRetentionSaved': 'Key retention updated.',
+  'agent.keyRetentionSavedExpiry': 'Key retention updated — {{count}} expired key(s) were removed.',
+  'agent.keyRetentionTitle': 'API key retention',
   'agent.level.high': 'High',
   'agent.level.low': 'Low',
   'agent.level.max': 'Max',
@@ -116,6 +131,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.settingsDescription':
     'API keys are stored only in this browser and sent directly to the provider you choose.',
   'agent.settingsOpen': 'Agent settings',
+  'agent.settingsTabGeneral': 'General',
   'agent.settingsTabMcp': 'MCP',
   'agent.settingsTabWebmcp': 'WebMCP',
   'agent.settingsTabModel': 'Model',

@@ -11,13 +11,21 @@ import {
   type MutableModels,
   type Provider,
 } from '@earendil-works/pi-ai';
+import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messages.lazy';
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
+import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.lazy';
 import { builtinProviders } from '@earendil-works/pi-ai/providers/all';
 
-import { getAgentConfig, updateAgentConfig } from './config';
+import { getAgentConfig, normalizeCustomProviders, updateAgentConfig } from './config';
 import { browserSafeFetch } from './fetch';
-import { activeHostProviders, buildHostProvider, getHostProviderConfig } from './host-providers';
+import {
+  activeHostProviders,
+  buildHostProvider,
+  getHostProviderConfig,
+  type ReAgentHostProviderApi,
+} from './host-providers';
 import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
+import type { ReAgentCloudModelSpec, ReAgentCloudProviderSpec } from './types';
 import { DEFAULT_OLLAMA_BASE_URL, OLLAMA_PROVIDER_ID } from './types';
 
 export { OLLAMA_PROVIDER_ID };
@@ -35,6 +43,23 @@ function writeJson(key: string, value: unknown): void {
   localStorage.setItem(key, JSON.stringify(value));
 }
 
+/** An api-key credential plus the timestamp ReAgent stamps on save. */
+type StoredApiKeyCredential = Extract<Credential, { type: 'api_key' }> & { savedAt?: number };
+
+function apiKeySavedAt(credential: Credential): number | undefined {
+  return credential.type === 'api_key' ? (credential as StoredApiKeyCredential).savedAt : undefined;
+}
+
+/** Whether a stored credential outlived the configured key retention window. */
+function isCredentialExpired(
+  credential: Credential,
+  retentionMs: number | null,
+  now: number,
+): boolean {
+  const savedAt = apiKeySavedAt(credential);
+  return retentionMs !== null && savedAt !== undefined && now - savedAt >= retentionMs;
+}
+
 /**
  * localStorage-backed CredentialStore implementing pi-ai's read/modify/delete
  * contract. Keys stay on the device; pi-ai resolves them per request and sends
@@ -50,11 +75,23 @@ class LocalCredentialStore implements CredentialStore {
   }
 
   async read(providerId: string): Promise<Credential | undefined> {
-    return readJson<Credential>(this.credentialKey(providerId));
+    const credential = readJson<Credential>(this.credentialKey(providerId));
+    if (credential === undefined) {
+      return undefined;
+    }
+    // Enforce the retention window at use time, so a long-lived tab stops
+    // sending keys the moment they expire.
+    if (isCredentialExpired(credential, getKeyRetention(this.prefix), Date.now())) {
+      localStorage.removeItem(this.credentialKey(providerId));
+      return undefined;
+    }
+    return credential;
   }
 
   async list(): Promise<readonly CredentialInfo[]> {
     const base = `${storageKey(this.prefix, 'credential.')}`;
+    const retention = getKeyRetention(this.prefix);
+    const now = Date.now();
     const infos: CredentialInfo[] = [];
     for (let i = 0; i < localStorage.length; i += 1) {
       const key = localStorage.key(i);
@@ -63,7 +100,7 @@ class LocalCredentialStore implements CredentialStore {
       }
       const providerId = key.slice(base.length);
       const credential = readJson<Credential>(key);
-      if (credential !== undefined) {
+      if (credential !== undefined && !isCredentialExpired(credential, retention, now)) {
         infos.push({ providerId, type: credential.type });
       }
     }
@@ -81,7 +118,13 @@ class LocalCredentialStore implements CredentialStore {
       if (next === undefined) {
         localStorage.removeItem(this.credentialKey(providerId));
       } else {
-        writeJson(this.credentialKey(providerId), next);
+        // Stamp api keys on every write so the retention window restarts on
+        // each save; OAuth credentials manage their own expiry.
+        const stamped =
+          next.type === 'api_key'
+            ? ({ ...next, savedAt: Date.now() } as StoredApiKeyCredential)
+            : next;
+        writeJson(this.credentialKey(providerId), stamped);
       }
       return next;
     });
@@ -197,7 +240,65 @@ export function hasCredential(
   providerId: string,
   prefix: string = DEFAULT_STORAGE_PREFIX,
 ): boolean {
-  return localStorage.getItem(storageKey(prefix, `credential.${providerId}`)) !== null;
+  const credential = readJson<Credential>(storageKey(prefix, `credential.${providerId}`));
+  if (credential === undefined) {
+    return false;
+  }
+  return !isCredentialExpired(credential, getKeyRetention(prefix), Date.now());
+}
+
+/** Configured key retention window in ms, or `null` when keys are kept forever. */
+export function getKeyRetention(prefix: string = DEFAULT_STORAGE_PREFIX): number | null {
+  return getAgentConfig(prefix).keyRetentionMs;
+}
+
+/**
+ * Delete every stored api key that outlived the retention window and unverify
+ * its provider, stamping keys saved before retention existed with "now".
+ * Returns the ids of the providers whose key was removed.
+ */
+export function pruneExpiredCredentials(prefix: string = DEFAULT_STORAGE_PREFIX): string[] {
+  const retention = getKeyRetention(prefix);
+  const base = storageKey(prefix, 'credential.');
+  const now = Date.now();
+  const removed: string[] = [];
+  const stamped: Array<[string, StoredApiKeyCredential]> = [];
+  for (let i = 0; i < localStorage.length; i += 1) {
+    const key = localStorage.key(i);
+    if (key === null || !key.startsWith(base)) {
+      continue;
+    }
+    const credential = readJson<Credential>(key);
+    if (credential === undefined || credential.type !== 'api_key') {
+      continue;
+    }
+    const savedAt = apiKeySavedAt(credential);
+    if (savedAt === undefined) {
+      stamped.push([key, { ...credential, savedAt: now }]);
+    } else if (isCredentialExpired(credential, retention, now)) {
+      localStorage.removeItem(key);
+      removed.push(key.slice(base.length));
+    }
+  }
+  for (const [key, credential] of stamped) {
+    writeJson(key, credential);
+  }
+  for (const providerId of removed) {
+    unverify(providerId, prefix);
+  }
+  return removed;
+}
+
+/**
+ * Set the key retention window (`null` = keep forever) and immediately expire
+ * keys that fall outside it. Returns the ids of removed providers' keys.
+ */
+export function setKeyRetention(
+  retentionMs: number | null,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): string[] {
+  updateAgentConfig({ keyRetentionMs: retentionMs }, prefix);
+  return pruneExpiredCredentials(prefix);
 }
 
 export async function saveApiKey(
@@ -284,6 +385,125 @@ function buildOllamaProvider(baseUrl: string) {
     fetchModels: async ({ signal }) => fetchOllamaModels(baseUrl, v1Url, signal),
     api: openAICompletionsApi(),
   });
+}
+
+function apiForCustomProvider(api: ReAgentHostProviderApi) {
+  if (api === 'anthropic-messages') {
+    return anthropicMessagesApi();
+  }
+  if (api === 'openai-responses') {
+    return openAIResponsesApi();
+  }
+  return openAICompletionsApi();
+}
+
+function customProviderModel(
+  entry: string | ReAgentCloudModelSpec,
+  providerId: string,
+  baseUrl: string,
+  api: ReAgentHostProviderApi,
+): Model<Api> {
+  const spec: ReAgentCloudModelSpec = typeof entry === 'string' ? { id: entry } : entry;
+  const reasoning = spec.reasoning ?? false;
+  return {
+    id: spec.id,
+    name: spec.name ?? spec.id,
+    api,
+    provider: providerId,
+    baseUrl,
+    reasoning,
+    input: ['text'],
+    cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
+    contextWindow: spec.contextWindow ?? 128_000,
+    maxTokens: spec.maxTokens ?? 32_000,
+    compat: {
+      supportsDeveloperRole: false,
+      supportsReasoningEffort: reasoning,
+    },
+  } as Model<Api>;
+}
+
+/**
+ * Build the pi-ai provider for a custom spec. An id-only spec re-enables
+ * pi-ai's built-in provider of that id; a spec with a `baseUrl` defines a new
+ * OpenAI/Anthropic-compatible endpoint whose key comes from the credential
+ * store. Returns `null` when the spec cannot be resolved (unknown built-in,
+ * empty base URL).
+ */
+export function buildCustomProvider(spec: ReAgentCloudProviderSpec): Provider<Api> | null {
+  if (spec.baseUrl === undefined) {
+    return builtinProviders().find(provider => provider.id === spec.id) ?? null;
+  }
+  const baseUrl = spec.baseUrl.trim().replace(/\/+$/, '');
+  if (baseUrl === '') {
+    return null;
+  }
+  const name = spec.name?.trim() || spec.id;
+  const api = spec.api ?? 'openai-completions';
+  return createProvider({
+    id: spec.id,
+    name,
+    baseUrl,
+    auth: {
+      apiKey: {
+        name: `${name} API key`,
+        resolve: async ({ credential }) =>
+          credential?.type === 'api_key' && credential.key
+            ? { auth: { apiKey: credential.key } }
+            : undefined,
+      },
+    },
+    models: (spec.models ?? []).map(entry => customProviderModel(entry, spec.id, baseUrl, api)),
+    api: apiForCustomProvider(api),
+  });
+}
+
+/**
+ * Every cloud provider pi-ai ships, so hosts can re-enable one with
+ * `addCustomCloudProvider({ id })` or build their own test UI on top.
+ */
+export function listBuiltinCloudProviders(): Array<{ id: string; name: string }> {
+  return builtinProviders().map(provider => ({ id: provider.id, name: provider.name }));
+}
+
+/** The custom cloud providers currently registered for this prefix. */
+export function getCustomCloudProviders(
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): ReAgentCloudProviderSpec[] {
+  return getAgentConfig(prefix).customProviders;
+}
+
+/** Replace the whole custom provider set and rebuild the model registry. */
+export function setCustomCloudProviders(
+  specs: ReAgentCloudProviderSpec[],
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): void {
+  updateAgentConfig({ customProviders: normalizeCustomProviders(specs) }, prefix);
+  rebuildModels(prefix);
+}
+
+/** Add (or replace by id) one custom provider and rebuild the registry. */
+export function addCustomCloudProvider(
+  spec: ReAgentCloudProviderSpec,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): void {
+  const current = getAgentConfig(prefix).customProviders;
+  setCustomCloudProviders([...current.filter(entry => entry.id !== spec.id), spec], prefix);
+}
+
+/** Remove a custom provider and rebuild the registry. */
+export function removeCustomCloudProvider(
+  id: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): void {
+  const current = getAgentConfig(prefix).customProviders;
+  if (!current.some(entry => entry.id === id)) {
+    return;
+  }
+  setCustomCloudProviders(
+    current.filter(entry => entry.id !== id),
+    prefix,
+  );
 }
 
 /**
@@ -440,16 +660,29 @@ function withLiveModels(provider: Provider<Api>): Provider<Api> {
 
 function buildModels(prefix: string): MutableModels {
   const models = createModels({ credentials: credentialStore(prefix) });
-  // Host-injected providers first, then browser-verified built-ins, then our
-  // keyless OpenAI-compatible endpoint.
+  // Host-injected providers first, then browser-verified built-ins, then the
+  // custom providers, then our keyless OpenAI-compatible endpoint.
+  const registered = new Set<string>();
   for (const { descriptor, config } of activeHostProviders()) {
     models.setProvider(buildHostProvider(descriptor, config));
+    registered.add(descriptor.id);
   }
   for (const provider of builtinProviders()) {
-    if (!BROWSER_SUPPORTED_PROVIDERS.has(provider.id)) {
+    if (!BROWSER_SUPPORTED_PROVIDERS.has(provider.id) || registered.has(provider.id)) {
       continue;
     }
     models.setProvider(withLiveModels(provider));
+    registered.add(provider.id);
+  }
+  for (const spec of getAgentConfig(prefix).customProviders) {
+    if (spec.id === OLLAMA_PROVIDER_ID || registered.has(spec.id)) {
+      continue;
+    }
+    const provider = buildCustomProvider(spec);
+    if (provider !== null) {
+      models.setProvider(withLiveModels(provider));
+      registered.add(spec.id);
+    }
   }
   models.setProvider(buildOllamaProvider(getOllamaBaseUrl(prefix)));
   return models;

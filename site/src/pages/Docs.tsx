@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, NavLink, useNavigate, useParams } from 'react-router-dom';
 
+import { CloudProviderTestBench } from '../components/CloudProviderTestBench';
 import { Markdown } from '../components/Markdown';
 import { ArrowLeftIcon, ArrowRightIcon } from '../components/icons';
 import { DOCS, DOC_GROUPS, docNeighbours, getDoc } from '../docs';
@@ -85,6 +86,12 @@ export function Docs() {
           </div>
 
           <Markdown content={stripTitle(doc.content)} />
+
+          {doc.slug === 'browser-support' && (
+            <div className="mt-10">
+              <CloudProviderTestBench />
+            </div>
+          )}
 
           <nav className="mt-14 grid gap-3 border-t border-border/70 pt-6 sm:grid-cols-2">
             {prev !== null ? (
