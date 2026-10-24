@@ -161,5 +161,38 @@ export interface AgentAttachment {
   id: string;
   name: string;
   mimeType: string;
-  data: string;
+  /** Inline base64 payload, used for vision images. */
+  data?: string;
+  /** MIME type of the inline payload (vision images may be re-encoded). */
+  dataMimeType?: string;
+  /** Durable reference when a file store is configured. */
+  file?: ReAgentFileRef;
+}
+
+/** A file persisted by a host-provided store. */
+export interface ReAgentFileRef {
+  id: string;
+  name: string;
+  mimeType: string;
+  size: number;
+  /** Store-specific relative path/location, e.g. `uploads/report.pdf`. */
+  path?: string;
+  /** Optional direct URL for host stores that expose files over HTTP. */
+  url?: string;
+}
+
+/** Host-provided persistence for conversation attachments. */
+export interface ReAgentFileStore {
+  put(file: File): Promise<ReAgentFileRef>;
+  get(ref: ReAgentFileRef): Promise<Blob>;
+  remove?(ref: ReAgentFileRef): Promise<void>;
+}
+
+/** Opt-in conversation file attachments. */
+export interface ReAgentFilesConfig {
+  store: ReAgentFileStore;
+  /** Passed to the composer file input; all files are accepted when omitted. */
+  accept?: string;
+  /** Reject files larger than this many bytes (default 25 MB). */
+  maxBytes?: number;
 }

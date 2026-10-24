@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react';
-import { ArrowLeft, FileText, Folder } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, Folder } from 'lucide-react';
+import { guessMimeType } from '../core/attachments';
+import { createOpfsFileStore } from '../core/file-store';
 import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
 import { getOpfsStats, listOpfsEntries, type OpfsEntry, type OpfsStats } from '../core/tools';
+import { ReAgentFileAttachment } from './reagent-file-attachment';
 
 /**
  * Full-surface browser over the installed filesystem namespace. Opened from
@@ -17,6 +20,7 @@ export function ReAgentFileBrowser() {
   const [path, setPath] = useState<string[]>([]);
   const [entries, setEntries] = useState<OpfsEntry[]>([]);
   const [stats, setStats] = useState<OpfsStats | null>(null);
+  const store = useMemo(() => createOpfsFileStore(namespace, { root: opfs }), [namespace, opfs]);
 
   useEffect(() => {
     if (opfs === null) {
@@ -77,30 +81,37 @@ export function ReAgentFileBrowser() {
           <p className="py-8 text-center text-sm text-muted-foreground">No files.</p>
         ) : (
           <ul className="space-y-1">
-            {entries.map(entry => (
-              <li key={entry.name}>
-                <button
-                  type="button"
-                  disabled={entry.kind !== 'directory'}
-                  onClick={() => {
-                    if (entry.kind === 'directory') {
-                      setPath([...path, entry.name]);
-                    }
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-muted disabled:opacity-60"
-                >
+            {entries.map(entry => {
+              const relativePath = [...path, entry.name].join('/');
+              return (
+                <li key={entry.name}>
                   {entry.kind === 'directory' ? (
-                    <Folder className="size-4 shrink-0 text-muted-foreground" />
+                    <button
+                      type="button"
+                      onClick={() => setPath([...path, entry.name])}
+                      className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-sm transition-colors hover:bg-muted"
+                    >
+                      <Folder className="size-4 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate">{entry.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">Folder</span>
+                    </button>
                   ) : (
-                    <FileText className="size-4 shrink-0 text-muted-foreground" />
+                    <ReAgentFileAttachment
+                      file={{
+                        id: relativePath,
+                        name: entry.name,
+                        mimeType: guessMimeType(entry.name),
+                        size: entry.size ?? 0,
+                        path: relativePath,
+                      }}
+                      store={store}
+                      compact
+                      className="w-full"
+                    />
                   )}
-                  <span className="min-w-0 flex-1 truncate">{entry.name}</span>
-                  <span className="shrink-0 text-xs text-muted-foreground">
-                    {entry.kind === 'directory' ? 'Folder' : `${entry.size ?? 0} B`}
-                  </span>
-                </button>
-              </li>
-            ))}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

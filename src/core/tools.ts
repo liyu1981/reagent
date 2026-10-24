@@ -1,5 +1,6 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
 import { type TSchema, Type } from '@earendil-works/pi-ai';
+import { guessMimeType } from './attachments';
 import { getAgentConfig } from './config';
 import type { EditorMutationBridge } from './editor-mutations';
 import { buildUseSkillTool, enabledSkillDefinitions, USE_SKILL_TOOL_ID } from './skill-registry';
@@ -260,10 +261,26 @@ export function getFileSystemTools(id: string): AgentToolDescriptor[] {
           segments[segments.length - 1],
           { create: true },
         );
+        const content = (args as { content: string }).content;
         const writable = await file.createWritable();
-        await writable.write((args as { content: string }).content);
+        await writable.write(content);
         await writable.close();
-        return textBlocks('Wrote file.');
+        const path = segments.join('/');
+        const name = segments[segments.length - 1];
+        return {
+          ...textBlocks('Wrote file.'),
+          details: {
+            files: [
+              {
+                id: path,
+                name,
+                mimeType: guessMimeType(name),
+                size: new Blob([content]).size,
+                path,
+              },
+            ],
+          },
+        };
       },
     })),
   ];

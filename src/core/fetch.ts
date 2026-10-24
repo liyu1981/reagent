@@ -1,6 +1,6 @@
 import type { FetchFunction } from '@earendil-works/pi-ai';
 
-import { hostProviderRequestHeaders } from './host-providers';
+import { hostProviderFetch, hostProviderRequestHeaders } from './host-providers';
 
 /**
  * Browser request normalization.
@@ -121,7 +121,8 @@ function sanitizeHeaders(
  * preflights and carry the auth header the provider actually expects.
  */
 export function browserSafeFetch(base?: FetchFunction, providerId?: string): FetchFunction {
-  const impl = base ?? fetch;
+  const impl =
+    base ?? (providerId === undefined ? undefined : hostProviderFetch(providerId)) ?? fetch;
   const profile = providerId === undefined ? undefined : PROVIDER_AUTH[providerId];
   const hostHeaders = providerId === undefined ? null : hostProviderRequestHeaders(providerId);
   return (input, init) =>

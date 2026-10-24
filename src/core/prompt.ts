@@ -1,5 +1,7 @@
+import { formatFileSize } from './attachments';
 import { getAgentConfig, updateAgentConfig } from './config';
 import { DEFAULT_STORAGE_PREFIX } from './storage';
+import type { ReAgentFileRef } from './types';
 
 /**
  * User-editable system prompt for the in-editor agent.
@@ -55,4 +57,29 @@ export function resolveSystemPrompt(
     return defaultPrompt;
   }
   return custom.replaceAll('{{language}}', language);
+}
+
+/**
+ * System-prompt section describing files attached to the conversation. Kept
+ * out of the visible user text: the UI renders the refs as attachment cards.
+ */
+export function filesSystemPrompt(files: ReAgentFileRef[], hasFilesystemTools: boolean): string {
+  if (files.length === 0) {
+    return '';
+  }
+  const shown = files.slice(0, 50);
+  const lines = shown.map(file => {
+    const details = [file.mimeType, formatFileSize(file.size)]
+      .filter(part => part !== '')
+      .join(', ');
+    const location = file.path !== undefined ? ` at \`${file.path}\`` : '';
+    return `- ${file.name} (${details})${location}`;
+  });
+  if (files.length > shown.length) {
+    lines.push(`- …and ${files.length - shown.length} more`);
+  }
+  const instruction = hasFilesystemTools
+    ? 'Files are stored in your agent filesystem. Use opfs_list to inspect it and opfs_read to read text files. Do not claim to have read a binary file you cannot read.'
+    : 'The files are stored for the user to preview or download; their contents are not available to you unless a tool exposes them.';
+  return `## Files attached by the user\n${lines.join('\n')}\n\n${instruction}`;
 }

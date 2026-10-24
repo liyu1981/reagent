@@ -70,16 +70,23 @@ export function AgentPanel() {
 
 ## Demos
 
-Two live demos, each with its full source on screen:
+Live demos, each with its full source on screen:
 
 - **[Vanilla](https://liyu1981.github.io/reagent/#/demos)** — the preset and
   nothing else.
 - **[Skills, tools & MCP](https://liyu1981.github.io/reagent/#/demos)** —
   host-defined skills, a custom tool and the Exa MCP server.
+- **[Filesystem · Attachments](https://liyu1981.github.io/reagent/#/demos)** —
+  OPFS-backed attachments and tools with a fake, in-page LLM.
+- **[WebMCP](https://liyu1981.github.io/reagent/#/demos)** — tools registered by
+  the page through WebMCP.
+- **[Host provider](https://liyu1981.github.io/reagent/#/demos)** — a
+  host-injected provider with its own setup UI.
 
-On first load ReAgent opens a session and points you at **Settings → Model** to
-add an **OpenRouter** key (the only cloud provider verified for browser use) or
-a local Ollama URL, then verify the connection.
+For the demos that use a real model, ReAgent opens a session and points you at
+**Settings → Model** to add an **OpenRouter** key (the only cloud provider
+verified for browser use) or a local Ollama URL, then verify the connection.
+The fake demos work without a key.
 
 ### Styles (Tailwind v4)
 
@@ -107,6 +114,7 @@ Every host integration is optional.
 | `language` | `string` | `'en'` | Answer language and default copy. |
 | `renderMarkdown` | `ComponentType<{ content; theme? }>` | plain `<pre>` | Render messages. |
 | `uploadFile` | `(file: File) => Promise<string>` | — | Persist a file, return markdown. |
+| `files` | `ReAgentFilesConfig \| null` | `null` | Opt-in durable attachments with preview/download (e.g. `createOpfsFileStore`). |
 | `notify` | `(message, level?) => void` | no-op | Success/error notifications. |
 | `messages` / `translate` | copy overrides / translator | English | i18n. |
 | `extraTools` | `AgentTool<any>[]` | `[]` | Raw tools (e.g. MCP). |

@@ -25,6 +25,7 @@ import { ReAgent, type ReAgentProps } from '@liyu1981/reagent';
 | `notify` | `ReAgentNotify` | no-op | Success/error notification sink. |
 | `renderMarkdown` | `ReAgentMarkdown` | plain `<pre>` | Renders assistant/user markdown. |
 | `uploadFile` | `(file: File) => Promise<string>` | — | Persist a non-vision file; return markdown to insert. |
+| `files` | `ReAgentFilesConfig \| null` | `null` | Opt-in durable attachments: file store, accepted types and size limit (default 25 MB). |
 | `extraTools` | `AgentTool<any>[]` | `[]` | Raw agent tools merged into the run (e.g. MCP). |
 | `extraDescriptors` | `AgentToolDescriptor[]` | `[]` | Tool descriptors shown in the Tools panel and built into the run. |
 | `storagePrefix` | `string` | `'agent'` | Namespace for all persisted state (localStorage + IndexedDB). See [Multiple agents & storage](./multiple-agents). |
@@ -53,8 +54,10 @@ required visual style of their own.
 | `ReAgentHeader` + `ReAgentSessionTreeTrigger`, `ReAgentNewSessionButton`, `ReAgentSettingsTrigger`, `ReAgentCloseButton`, `ReAgentForkButton`, `ReAgentSessionTitle` | Header controls. |
 | `ReAgentMessageList` | Scrollable transcript. |
 | `ReAgentMessage`, `ReAgentToolCall`, `ReAgentToolChip`, `messageText` | Message rendering primitives. |
+| `ReAgentFileAttachment`, `ReAgentFilePreviewProvider`, `ReAgentFilePreviewPanel` | Stored-file card and the contained preview/download surface. The preset wraps its root in the provider automatically. |
 | `ReAgentComposer` + `ReAgentComposerInput`, `ReAgentComposerRow`, `ReAgentComposerAttach`, `ReAgentComposerAttachments`, `ReAgentComposerSelectionChip`, `ReAgentComposerStatus`, `ReAgentContextMeter`, `ReAgentModelPicker`, `ReAgentThinkingPicker`, `ReAgentSendButton` | The composer and its controls. |
 | `ReAgentSessionsView` | Conversation-tree browser. |
+| `ReAgentFileBrowser` | Full-surface OPFS browser (settings → Filesystem → Browse files). |
 | `ReAgentSettingsView` + `ReAgentGeneralPanel`, `ReAgentModelPanel`, `ReAgentPromptPanel`, `ReAgentSkillsPanel`, `ReAgentToolsPanel`, `ReAgentMcpPanel`, `ReAgentWebMcpPanel` | Settings tabs. |
 
 Because these call `useReAgent()`, they must be rendered inside a

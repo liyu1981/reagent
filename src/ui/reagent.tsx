@@ -13,7 +13,7 @@ import type {
   ReAgentTranslate,
 } from '../core/messages';
 import { ReAgentProvider } from '../core/reagent-provider';
-import type { AgentDraft, AgentToolDescriptor } from '../core/types';
+import type { AgentDraft, AgentToolDescriptor, ReAgentFilesConfig } from '../core/types';
 import { cn } from '../lib/utils';
 import { Button } from '../primitives/button';
 import {
@@ -47,6 +47,7 @@ import {
 } from './reagent-header';
 import { ReAgentMessageList } from './reagent-message-list';
 import { ReAgentRoot } from './reagent-root';
+import { ReAgentFilePreviewProvider } from './reagent-file-attachment';
 import { ReAgentFileBrowser } from './reagent-file-browser';
 import { ReAgentSessionsView } from './reagent-sessions-view';
 import { ReAgentSettingsView } from './settings/reagent-settings-view';
@@ -68,6 +69,8 @@ export interface ReAgentProps {
   notify?: ReAgentNotify;
   renderMarkdown?: ReAgentMarkdown;
   uploadFile?: (file: File) => Promise<string>;
+  /** Opt-in durable conversation attachments. */
+  files?: ReAgentFilesConfig | null;
   extraTools?: AgentTool<any>[];
   extraDescriptors?: AgentToolDescriptor[];
   /**
@@ -81,7 +84,7 @@ export interface ReAgentProps {
 
 export type ReAgentSurface = 'glass' | 'solid';
 
-const surfaceVariants = cva('flex h-full min-h-0 flex-col overflow-hidden rounded-2xl', {
+const surfaceVariants = cva('relative flex h-full min-h-0 flex-col overflow-hidden rounded-2xl', {
   variants: {
     surface: {
       glass: 'glass-control-opaque',
@@ -115,6 +118,7 @@ export function ReAgent({
   notify,
   renderMarkdown,
   uploadFile,
+  files,
   extraTools,
   extraDescriptors,
   storagePrefix,
@@ -133,6 +137,7 @@ export function ReAgent({
       notify={notify}
       renderMarkdown={renderMarkdown}
       uploadFile={uploadFile}
+      files={files}
       extraTools={extraTools}
       extraDescriptors={extraDescriptors}
       storagePrefix={storagePrefix}
@@ -155,44 +160,46 @@ function ReAgentChrome({
   const { view } = useReAgent();
   return (
     <ReAgentRoot data-surface={surface} className={cn(surfaceVariants({ surface }), className)}>
-      {view === 'filesystem' ? (
-        <ReAgentFileBrowser />
-      ) : view === 'settings' ? (
-        <ReAgentSettingsView />
-      ) : view === 'sessions' ? (
-        <ReAgentSessionsView />
-      ) : (
-        <>
-          <ReAgentHeader>
-            <ReAgentSessionTreeTrigger />
-            <ReAgentNewSessionButton />
-            <ReAgentSettingsTrigger />
-            {onClose !== undefined && <ReAgentCloseButton onClick={onClose} />}
-          </ReAgentHeader>
+      <ReAgentFilePreviewProvider>
+        {view === 'filesystem' ? (
+          <ReAgentFileBrowser />
+        ) : view === 'settings' ? (
+          <ReAgentSettingsView />
+        ) : view === 'sessions' ? (
+          <ReAgentSessionsView />
+        ) : (
+          <>
+            <ReAgentHeader>
+              <ReAgentSessionTreeTrigger />
+              <ReAgentNewSessionButton />
+              <ReAgentSettingsTrigger />
+              {onClose !== undefined && <ReAgentCloseButton onClick={onClose} />}
+            </ReAgentHeader>
 
-          <ReAgentMessageList />
+            <ReAgentMessageList />
 
-          <footer className="p-2">
-            <ReAgentComposer>
-              <ReAgentComposerSelectionChip />
-              <ReAgentComposerAttachments />
-              <ReAgentComposerInput />
-              <ReAgentComposerRow>
-                <ReAgentComposerAttach />
-                <div className="flex items-center gap-1.5">
-                  <ReAgentComposerStatus />
-                  <ReAgentContextMeter />
-                  <ReAgentThinkingPicker />
-                  <ReAgentModelPicker />
-                  <ReAgentSendButton />
-                </div>
-              </ReAgentComposerRow>
-            </ReAgentComposer>
-          </footer>
-        </>
-      )}
+            <footer className="p-2">
+              <ReAgentComposer>
+                <ReAgentComposerSelectionChip />
+                <ReAgentComposerAttachments />
+                <ReAgentComposerInput />
+                <ReAgentComposerRow>
+                  <ReAgentComposerAttach />
+                  <div className="flex items-center gap-1.5">
+                    <ReAgentComposerStatus />
+                    <ReAgentContextMeter />
+                    <ReAgentThinkingPicker />
+                    <ReAgentModelPicker />
+                    <ReAgentSendButton />
+                  </div>
+                </ReAgentComposerRow>
+              </ReAgentComposer>
+            </footer>
+          </>
+        )}
 
-      <ExaKeyDialog />
+        <ExaKeyDialog />
+      </ReAgentFilePreviewProvider>
     </ReAgentRoot>
   );
 }

@@ -47,7 +47,9 @@ export function App() {
 }
 ```
 
-Every part rendered inside the provider can call `useReAgent()`.
+Every part rendered inside the provider can call `useReAgent()`. If you use
+`ReAgentFileAttachment` in a custom layout, wrap that layout in
+`ReAgentFilePreviewProvider` so previews stay inside your container.
 
 ## The context value
 
@@ -62,6 +64,7 @@ Every part rendered inside the provider can call `useReAgent()`.
 | `changeModel`, `changeThinking` | Change the active model / thinking level. |
 | `status`, `streamingText`, `isThinking`, `toolCalls`, `error` | Run state. |
 | `input`, `setInput`, `attachments`, `addFiles`, `removeAttachment`, `uploading` | Composer state. |
+| `files` | Opt-in `ReAgentFilesConfig` (store, accept, max size — 25 MB default) or `null`. |
 | `selection`, `selectionExpanded`, `toggleSelectionExpanded`, `clearSelection`, `draft` | Selection / draft state. |
 | `expandedToolCalls`, `toggleToolCall` | Tool-call disclosure state. |
 | `send`, `stop` | Run the agent / abort it. |

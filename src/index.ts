@@ -4,6 +4,7 @@ export * from './core/agent';
 export * from './core/attachments';
 export * from './core/config';
 export * from './core/editor-mutations';
+export * from './core/file-store';
 export * from './core/hooks';
 export * from './core/host-providers';
 export * from './core/i18n';
@@ -54,6 +55,8 @@ export * from './core/webmcp';
 
 export * from './ui/reagent';
 export * from './ui/reagent-composer';
+export * from './ui/reagent-file-attachment';
+export * from './ui/reagent-file-browser';
 export * from './ui/reagent-header';
 export * from './ui/reagent-message';
 export * from './ui/reagent-message-list';

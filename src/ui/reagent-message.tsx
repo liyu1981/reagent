@@ -2,9 +2,11 @@ import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { ToolCall } from '@earendil-works/pi-ai';
 import { Bot, ChevronDown, GitBranch, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
+import { getMessageFiles } from '../core/attachments';
 import { useReAgent } from '../core/hooks';
 import { useMarkdown, useResolvedTheme, useTranslation } from '../core/i18n';
 import { cn } from '../lib/utils';
+import { ReAgentFileAttachment } from './reagent-file-attachment';
 
 function DefaultMarkdown({ content }: { content: string; theme?: 'light' | 'dark' }) {
   return <pre className="whitespace-pre-wrap font-sans text-sm">{content}</pre>;
@@ -68,6 +70,8 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
 
   if (message.role === 'user') {
     const text = messageText(message);
+    const files = getMessageFiles(message);
+    const hasStoredImages = files.some(file => file.mimeType.startsWith('image/'));
     const images =
       typeof message.content === 'string'
         ? []
@@ -78,7 +82,19 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
     return (
       <div className={cn('group flex justify-end', className)}>
         <div className="max-w-[88%] space-y-1.5 rounded-2xl bg-accent px-3 py-2 text-sm text-accent-foreground">
-          {images.length > 0 && (
+          {files.length > 0 && (
+            <div className="flex flex-col gap-1.5">
+              {files.map((file, fileIndex) => (
+                <ReAgentFileAttachment
+                  key={`${file.id}-${fileIndex}`}
+                  file={file}
+                  compact
+                  className="w-full min-w-56 bg-background/60"
+                />
+              ))}
+            </div>
+          )}
+          {!hasStoredImages && images.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {images.map((img, imgIndex) => (
                 <img
@@ -107,7 +123,8 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
   const text = messageText(message);
   const calledTools = toolCallBlocks(message);
   const reasoning = messageThinking(message);
-  if (text === '' && calledTools.length === 0 && reasoning === '') {
+  const files = getMessageFiles(message);
+  if (text === '' && calledTools.length === 0 && reasoning === '' && files.length === 0) {
     return null;
   }
 
@@ -133,6 +150,18 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
             onToggle={() => toggleToolCall(call.id)}
           />
         ))}
+        {files.length > 0 && (
+          <div className="flex flex-col gap-1.5">
+            {files.map((file, fileIndex) => (
+              <ReAgentFileAttachment
+                key={`${file.id}-${fileIndex}`}
+                file={file}
+                compact
+                className="w-full min-w-56"
+              />
+            ))}
+          </div>
+        )}
       </div>
       <BranchButton onClick={branchFromHere} label={t('agent.sessionBranchFromHere')} />
     </div>

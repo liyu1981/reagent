@@ -3,6 +3,7 @@ import { useLayoutEffect, useState } from 'react';
 
 import { CodeBlock } from '../components/CodeBlock';
 import { BatteriesDemo, prepareBatteriesDemo } from '../demos/BatteriesDemo';
+import { FilesystemDemo, prepareFilesystemDemo } from '../demos/FilesystemDemo';
 import { HostProviderDemo } from '../demos/HostProviderDemo';
 import { VanillaDemo } from '../demos/VanillaDemo';
 import { WebMcpDemo } from '../demos/WebMcpDemo';
@@ -16,6 +17,7 @@ import {
 import { cn } from '../lib/cn';
 import type { SiteTheme } from '../lib/theme';
 import batteriesSource from '../demos/BatteriesDemo.tsx?raw';
+import filesystemSource from '../demos/FilesystemDemo.tsx?raw';
 import hostSource from '../demos/HostProviderDemo.tsx?raw';
 import vanillaSource from '../demos/VanillaDemo.tsx?raw';
 import webmcpSource from '../demos/WebMcpDemo.tsx?raw';
@@ -32,7 +34,13 @@ const TABS: { id: DemoMode; label: string; blurb: string }[] = [
     id: 'batteries',
     label: 'Skills · Tools · MCP',
     blurb:
-      'Two host-defined skills, a custom tool, the built-in filesystem tools and the Exa MCP server.',
+      'Two host-defined skills, a custom tool, OPFS attachments with filesystem tools and the Exa MCP server.',
+  },
+  {
+    id: 'filesystem',
+    label: 'Filesystem · Attachments',
+    blurb:
+      'A fake in-page LLM that really calls the OPFS tools. Attach a text file and ask it to read the file, ask it to write a note, or browse the namespace in Settings.',
   },
   {
     id: 'webmcp',
@@ -57,6 +65,9 @@ function resetToVanilla(): void {
 function applyDemo(mode: DemoMode): void {
   if (mode === 'batteries') {
     prepareBatteriesDemo();
+  } else if (mode === 'filesystem') {
+    resetToVanilla();
+    prepareFilesystemDemo();
   } else {
     resetToVanilla();
   }
@@ -94,12 +105,14 @@ export function Demos({ theme }: { theme: SiteTheme }) {
   const SOURCES: Record<DemoMode, string> = {
     vanilla: vanillaSource,
     batteries: batteriesSource,
+    filesystem: filesystemSource,
     webmcp: webmcpSource,
     host: hostSource,
   };
   const COMPONENTS: Record<DemoMode, typeof VanillaDemo> = {
     vanilla: VanillaDemo,
     batteries: BatteriesDemo,
+    filesystem: FilesystemDemo,
     webmcp: WebMcpDemo,
     host: HostProviderDemo,
   };
@@ -111,13 +124,13 @@ export function Demos({ theme }: { theme: SiteTheme }) {
       <header className="mb-8">
         <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">Demos</h1>
         <p className="mt-3 max-w-2xl text-lg text-muted-foreground">
-          Several ways to use ReAgent. Each demo runs live and shows its exact source — open the
-          settings gear to add a model key, then chat.
+          Several ways to use ReAgent. Each demo runs live and shows its exact source. The fake
+          demos work without a key; the others need a model key in settings.
         </p>
       </header>
 
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="inline-flex rounded-xl border border-border p-1 text-sm">
+        <div className="inline-flex flex-wrap rounded-xl border border-border p-1 text-sm">
           {TABS.map(entry => (
             <button
               key={entry.id}

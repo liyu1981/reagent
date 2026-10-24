@@ -52,6 +52,8 @@ interface ReAgentHostProviderConfig {
   api?: 'openai-completions' | 'openai-responses' | 'anthropic-messages';
   /** The model ids to expose. */
   models?: string[];
+  /** Optional request implementation for mocks/tests/custom transports. */
+  fetch?: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 }
 ```
 
@@ -67,6 +69,8 @@ The config is kept **in memory only** — ReAgent never writes it to
   models are offered in the composer's picker.
 - `authHeaders` shapes how the key reaches the API (a custom header, a
   different scheme, …) and overrides the default bearer header.
-- See the [host provider demo](/demos) — it uses a fake provider.
+- A provider can supply its own `fetch` to mock the endpoint in-page. Both the
+  [host provider demo](/demos) and the **Filesystem · Attachments** demo use a
+  fake provider, so they run without an API key.
 
 Next: [WebMCP](./webmcp) →

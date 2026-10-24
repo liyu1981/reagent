@@ -1,4 +1,10 @@
-import { type Api, createProvider, type Model, type Provider } from '@earendil-works/pi-ai';
+import {
+  type Api,
+  createProvider,
+  type FetchFunction,
+  type Model,
+  type Provider,
+} from '@earendil-works/pi-ai';
 import { anthropicMessagesApi } from '@earendil-works/pi-ai/api/anthropic-messages.lazy';
 import { openAICompletionsApi } from '@earendil-works/pi-ai/api/openai-completions.lazy';
 import { openAIResponsesApi } from '@earendil-works/pi-ai/api/openai-responses.lazy';
@@ -41,6 +47,8 @@ export interface ReAgentHostProviderConfig {
   api?: ReAgentHostProviderApi;
   /** The model ids to expose. */
   models?: string[];
+  /** Optional fetch implementation (tests, in-browser mocks, custom transports). */
+  fetch?: FetchFunction;
 }
 
 /** Props passed to a host provider's settings component. */
@@ -120,6 +128,11 @@ export function hostProviderRequestHeaders(id: string): Record<string, string> |
       ? config.authHeaders(config.apiKey)
       : { authorization: `Bearer ${config.apiKey}` };
   return { ...auth, ...(config.headers ?? {}) };
+}
+
+/** Optional request implementation supplied by a host provider (e.g. a mock). */
+export function hostProviderFetch(id: string): FetchFunction | undefined {
+  return configs.get(id)?.fetch;
 }
 
 interface ActiveHostProvider {

@@ -58,7 +58,9 @@ agents keep separate filesystems.
 | `opfs_write` | Create or overwrite a file (creates parent folders as needed). |
 
 `opfs_write` covers create-or-overwrite; there is no separate create tool. All
-paths are relative to `<opfs>/<id>/`.
+paths are relative to `<opfs>/<id>/`. Files written by `opfs_write` are returned
+as attachments on the assistant message, with the same preview/download card as
+user attachments.
 
 ### Filesystem settings UI
 
@@ -66,8 +68,33 @@ When filesystem tools are installed, the general settings tab renders the
 filesystem section: the configured namespace, an aggregate stats line (how many
 files the folder holds and how many bytes it occupies) and a **Browse files**
 button. Browsing swaps the chat surface for a full-surface file browser scoped
-to that namespace — folders are navigable, files are sized, and the current
-folder is shown in the breadcrumb.
+to that namespace — folders are navigable, files can be previewed, downloaded
+and sized, and the current folder is shown in the breadcrumb.
+
+### Filesystem attachments
+
+Pair the tools with an OPFS file store so conversation attachments land in the
+same namespace the model can inspect:
+
+```tsx
+import { createOpfsFiles } from '@liyu1981/reagent';
+
+const files = createOpfsFiles('notes');
+
+<ReAgent
+  files={{ store: files.store }}
+  extraDescriptors={files.descriptors}
+/>;
+```
+
+Uploaded files are written to `<opfs>/<id>/uploads/` and referenced from the
+user message, so they survive reloads and are visible in the file browser. The
+system prompt lists the attached files and tells the model to use `opfs_list` /
+`opfs_read` for text. Binary files such as PDFs are available for preview and
+download but are not readable by the model unless a host tool extracts them.
+
+The **Filesystem · Attachments** demo wires this up with a fake in-page LLM, so
+you can try attachment upload, reading and writing without a model key.
 
 ## Descriptors
 

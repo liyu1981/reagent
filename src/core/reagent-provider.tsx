@@ -12,7 +12,15 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { buildAgent } from './agent';
-import { blobToBase64, makeVisionImage } from './attachments';
+import {
+  blobToBase64,
+  DEFAULT_MAX_FILE_BYTES,
+  formatFileSize,
+  getMessageFiles,
+  isReAgentFileRef,
+  makeVisionImage,
+  setMessageFiles,
+} from './attachments';
 import {
   getAgentConfig,
   subscribeAgentConfig,
@@ -44,7 +52,7 @@ import {
   refreshModels,
   subscribeModels,
 } from './models';
-import { EDITOR_GUARDRAIL, resolveSystemPrompt } from './prompt';
+import { EDITOR_GUARDRAIL, filesSystemPrompt, resolveSystemPrompt } from './prompt';
 import {
   buildSessionTree,
   deleteSession as deleteSessionRecord,
@@ -63,6 +71,8 @@ import type {
   AgentSession,
   AgentSessionNode,
   AgentToolDescriptor,
+  ReAgentFileRef,
+  ReAgentFilesConfig,
   ToolChip,
 } from './types';
 import { hasWebMcp, listWebMcpTools, subscribeWebMcp } from './webmcp';
@@ -136,6 +146,8 @@ export interface ReAgentContextValue {
     /** Origin-private filesystem root (browser OPFS) the namespace folder hangs off. */
     opfs: FileSystemDirectoryHandle | null;
   } | null;
+  /** Opt-in conversation file attachments. */
+  files: ReAgentFilesConfig | null;
   /** WebMCP tools the current page exposes (empty when unavailable). */
   webmcp: { available: boolean; toolCount: number; tools: AgentTool<any>[] };
   /** Host-injected providers and their in-memory config. */
@@ -193,6 +205,8 @@ export interface ReAgentProviderProps {
   renderMarkdown?: ReAgentMarkdown;
   /** Upload a file the model cannot read; returns markdown to insert. */
   uploadFile?: (file: File) => Promise<string>;
+  /** Opt-in durable conversation attachments. */
+  files?: ReAgentFilesConfig | null;
   /**
    * Namespace for all persisted state (localStorage keys + the conversation
    * IndexedDB). Defaults to the shared `agent` prefix; pass a different value
@@ -218,6 +232,7 @@ export function ReAgentProvider({
   notify,
   renderMarkdown,
   uploadFile,
+  files,
   storagePrefix,
   hostProviders,
   children,
@@ -261,6 +276,8 @@ export function ReAgentProvider({
   const draftRef = useRef(draft ?? null);
   const editorRef = useRef(editor);
   const opfsRef = useRef<FileSystemDirectoryHandle | null>(null);
+  const pendingFilesRef = useRef<ReAgentFileRef[]>([]);
+  const createdFilesRef = useRef<ReAgentFileRef[]>([]);
   const extraToolsRef = useRef(extraTools);
   const webmcpToolsRef = useRef<AgentTool<any>[]>([]);
   const extraDescriptorsRef = useRef(extraDescriptors);
@@ -493,8 +510,13 @@ export function ReAgentProvider({
             setStreaming(true);
             setError(null);
             contentEditedRef.current = false;
+            createdFilesRef.current = [];
             break;
           case 'message_start':
+            if (event.message.role === 'user' && pendingFilesRef.current.length > 0) {
+              setMessageFiles(event.message, pendingFilesRef.current);
+              pendingFilesRef.current = [];
+            }
             if (event.message.role === 'assistant') {
               setStreamingText('');
               setStreamingThinking('');
@@ -545,6 +567,13 @@ export function ReAgentProvider({
             ) {
               contentEditedRef.current = true;
             }
+            if (!event.isError) {
+              for (const file of resultFileRefs(event.result)) {
+                if (!createdFilesRef.current.some(existing => existing.id === file.id)) {
+                  createdFilesRef.current.push(file);
+                }
+              }
+            }
             setToolChips(prev =>
               prev.map(chip =>
                 chip.id === event.toolCallId
@@ -554,6 +583,22 @@ export function ReAgentProvider({
             );
             break;
           case 'agent_end':
+            pendingFilesRef.current = [];
+            if (createdFilesRef.current.length > 0) {
+              const lastAssistant = [...instance.state.messages]
+                .reverse()
+                .find(message => message.role === 'assistant');
+              if (lastAssistant !== undefined) {
+                const merged = new Map(
+                  getMessageFiles(lastAssistant).map(file => [file.id, file] as const),
+                );
+                for (const file of createdFilesRef.current) {
+                  merged.set(file.id, file);
+                }
+                setMessageFiles(lastAssistant, [...merged.values()]);
+              }
+              createdFilesRef.current = [];
+            }
             patchActive([...instance.state.messages]);
             setStreaming(false);
             setStreamingText('');
@@ -841,9 +886,27 @@ export function ReAgentProvider({
       return;
     }
     latestRef.current = sessionNow;
+    const sentAttachments = attachments;
+    const sentFiles = sentAttachments.flatMap(attachment =>
+      attachment.file === undefined ? [] : [attachment.file],
+    );
+    const filesystemToolsActive = (extraDescriptorsRef.current ?? []).some(
+      descriptor =>
+        descriptor.group === 'filesystem' &&
+        !(configRef.current.toolsDisabled ?? []).includes(descriptor.id),
+    );
+    const knownFiles = new Map<string, ReAgentFileRef>();
+    for (const file of [...sessionNow.messages.flatMap(getMessageFiles), ...sentFiles]) {
+      knownFiles.set(file.id, file);
+    }
     // pi-agent-core 1.x keeps the prompt in the transcript's leading system
     // message (`state.systemPrompt` is read-only), so update that message.
-    const nextPrompt = buildSystemPrompt(currentBasePrompt());
+    const nextPrompt = [
+      buildSystemPrompt(currentBasePrompt()),
+      filesSystemPrompt([...knownFiles.values()], filesystemToolsActive),
+    ]
+      .filter(section => section !== '')
+      .join('\n\n');
     const [head, ...rest] = instance.state.messages;
     if (head !== undefined && head.role === 'system') {
       instance.state.messages = [{ ...head, content: nextPrompt }, ...rest];
@@ -852,21 +915,28 @@ export function ReAgentProvider({
       selection !== null && selection !== undefined && selection.trim() !== ''
         ? `Revise the following selection.\n\n\`\`\`markdown\n${selection}\n\`\`\`\n\nInstruction: ${text}`
         : text;
-    const sentAttachments = attachments;
-    const images: ImageContent[] = sentAttachments.map(attachment => ({
-      type: 'image' as const,
-      data: attachment.data,
-      mimeType: attachment.mimeType,
-    }));
+    const promptText = prompt === '' && sentFiles.length > 0 ? t('agent.filesOnlyPrompt') : prompt;
+    const images: ImageContent[] = sentAttachments.flatMap(attachment =>
+      attachment.data === undefined || attachment.data === ''
+        ? []
+        : [
+            {
+              type: 'image' as const,
+              data: attachment.data,
+              mimeType: attachment.dataMimeType ?? attachment.mimeType,
+            },
+          ],
+    );
+    pendingFilesRef.current = sentFiles;
     setInput('');
     setAttachments([]);
     setStreaming(true);
     setError(null);
     try {
       if (images.length > 0) {
-        await instance.prompt(prompt, images);
+        await instance.prompt(promptText, images);
       } else {
-        await instance.prompt(prompt);
+        await instance.prompt(promptText);
       }
       if (sessionNow.title === t('agent.untitled')) {
         const titleText = text === '' ? (sentAttachments[0]?.name ?? '') : text;
@@ -874,6 +944,7 @@ export function ReAgentProvider({
         await persistSession({ ...sessionNow, title }, instance.state.messages);
       }
     } catch (err) {
+      pendingFilesRef.current = [];
       setStreaming(false);
       setAttachments(sentAttachments);
       setError(err instanceof Error ? err.message : String(err));
@@ -901,8 +972,8 @@ export function ReAgentProvider({
   }, []);
 
   const addFiles = useCallback(
-    async (files: FileList) => {
-      const list = Array.from(files);
+    async (incoming: FileList) => {
+      const list = Array.from(incoming);
       if (list.length === 0) {
         return;
       }
@@ -911,11 +982,46 @@ export function ReAgentProvider({
       try {
         for (const file of list) {
           const isImage = file.type.startsWith('image/');
+          if (files !== undefined && files !== null) {
+            const maxBytes = files.maxBytes ?? DEFAULT_MAX_FILE_BYTES;
+            if (file.size > maxBytes) {
+              setError(
+                t('agent.fileTooLarge', {
+                  name: file.name,
+                  size: formatFileSize(maxBytes),
+                }),
+              );
+              continue;
+            }
+            const ref = await files.store.put(file);
+            let data: string | undefined;
+            let dataMimeType: string | undefined;
+            if (isImage && visionEnabled) {
+              const blob = await makeVisionImage(file);
+              dataMimeType = blob.type === '' ? ref.mimeType || 'image/png' : blob.type;
+              data = await blobToBase64(blob);
+            }
+            setAttachments(prev => [
+              ...prev,
+              {
+                id: ref.id,
+                name: ref.name,
+                mimeType: ref.mimeType,
+                data,
+                dataMimeType,
+                file: ref,
+              },
+            ]);
+            continue;
+          }
           if (isImage && visionEnabled) {
             const blob = await makeVisionImage(file);
             const mimeType = blob.type === '' ? file.type || 'image/png' : blob.type;
             const data = await blobToBase64(blob);
-            setAttachments(prev => [...prev, { id: newId(), name: file.name, mimeType, data }]);
+            setAttachments(prev => [
+              ...prev,
+              { id: newId(), name: file.name, mimeType, dataMimeType: mimeType, data },
+            ]);
             continue;
           }
           if (uploadFile === undefined) {
@@ -940,7 +1046,7 @@ export function ReAgentProvider({
         setUploading(false);
       }
     },
-    [insertReference, t, uploadFile, visionEnabled],
+    [files, insertReference, t, uploadFile, visionEnabled],
   );
 
   const removeAttachment = useCallback((id: string) => {
@@ -1077,6 +1183,7 @@ export function ReAgentProvider({
       hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,
     }),
     filesystem,
+    files: files ?? null,
     t,
     language,
     theme,
@@ -1085,6 +1192,18 @@ export function ReAgentProvider({
   };
 
   return <ReAgentContext.Provider value={value}>{children}</ReAgentContext.Provider>;
+}
+
+function resultFileRefs(result: unknown): ReAgentFileRef[] {
+  if (result === null || typeof result !== 'object') {
+    return [];
+  }
+  const details = (result as { details?: unknown }).details;
+  if (details === null || typeof details !== 'object') {
+    return [];
+  }
+  const files = (details as { files?: unknown }).files;
+  return Array.isArray(files) ? files.filter(isReAgentFileRef) : [];
 }
 
 function clampedSelection(selection: string | null | undefined): string | null {

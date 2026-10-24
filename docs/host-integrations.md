@@ -60,12 +60,53 @@ tools such as MCP servers:
 <ReAgent extraTools={mcpTools} />;
 ```
 
-## File uploads
+## File attachments
 
-For files the model cannot read (PDFs, archives, …), provide `uploadFile`. It
-receives the `File` and returns markdown to insert into the message. Images that
-the active model supports are sent as vision attachments automatically; if the
-model can't see images, ReAgent falls back to `uploadFile`.
+Attachments are opt-in. Pass a `ReAgentFileStore` to keep any file in the
+conversation, preview it, and download it later. With a store configured, the
+composer accepts all file types (or only the types in `accept`), and the
+user-message renderer shows a file card instead of dropping the attachment.
+Previews open **inside the ReAgent panel**; they are not page-level dialogs.
+
+```tsx
+import { createOpfsFileStore } from '@liyu1981/reagent';
+
+<ReAgent files={{ store: createOpfsFileStore('notes') }} />;
+```
+
+ReAgent ships an OPFS-backed store so files never leave the browser. Pair it
+with the filesystem tools to let the model read text files:
+
+```tsx
+import { createOpfsFiles } from '@liyu1981/reagent';
+
+const files = createOpfsFiles('notes');
+
+<ReAgent
+  files={{ store: files.store, maxBytes: 25 * 1024 * 1024 }}
+  extraDescriptors={files.descriptors}
+/>;
+```
+
+A custom store only needs `put`, `get` and an optional `remove`:
+
+```ts
+type ReAgentFileStore = {
+  put(file: File): Promise<ReAgentFileRef>;
+  get(ref: ReAgentFileRef): Promise<Blob>;
+  remove?(ref: ReAgentFileRef): Promise<void>;
+};
+```
+
+`maxBytes` defaults to 25 MB. Set `accept` to narrow the file picker (MIME
+patterns or extensions); omit it to accept every file type.
+
+For files the model cannot read (PDFs, archives, …), you can still use
+`uploadFile`. It receives the `File` and returns markdown to insert into the
+message. Without a file store, images the active model supports are sent as
+vision attachments automatically; if the model can't see images, ReAgent falls
+back to `uploadFile`. When `files` is configured it takes precedence over
+`uploadFile` for non-image files.
 
 ```tsx
 <ReAgent

@@ -16,6 +16,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
 import { cn } from '../lib/utils';
+import { ReAgentFileAttachment } from './reagent-file-attachment';
 import { Badge } from '../primitives/badge';
 import { Button } from '../primitives/button';
 import {
@@ -131,23 +132,33 @@ export function ReAgentComposerAttachments({ className, ...props }: ComponentPro
       className={cn('mb-1.5 flex flex-wrap gap-1.5', className)}
       {...props}
     >
-      {attachments.map(attachment => (
-        <div key={attachment.id} className="relative">
-          <img
-            src={`data:${attachment.mimeType};base64,${attachment.data}`}
-            alt={attachment.name}
-            className="size-14 rounded-lg border border-border/50 object-cover"
+      {attachments.map(attachment =>
+        attachment.file !== undefined ? (
+          <ReAgentFileAttachment
+            key={attachment.id}
+            file={attachment.file}
+            compact
+            onRemove={() => removeAttachment(attachment.id)}
+            className="max-w-72"
           />
-          <button
-            type="button"
-            onClick={() => removeAttachment(attachment.id)}
-            aria-label={t('agent.removeAttachment')}
-            className="absolute -top-1 -right-1 rounded-full border border-border/60 bg-background p-0.5 text-muted-foreground shadow-sm hover:text-foreground"
-          >
-            <X className="size-3" />
-          </button>
-        </div>
-      ))}
+        ) : (
+          <div key={attachment.id} className="relative">
+            <img
+              src={`data:${attachment.dataMimeType ?? attachment.mimeType};base64,${attachment.data ?? ''}`}
+              alt={attachment.name}
+              className="size-14 rounded-lg border border-border/50 object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => removeAttachment(attachment.id)}
+              aria-label={t('agent.removeAttachment')}
+              className="absolute -top-1 -right-1 rounded-full border border-border/60 bg-background p-0.5 text-muted-foreground shadow-sm hover:text-foreground"
+            >
+              <X className="size-3" />
+            </button>
+          </div>
+        ),
+      )}
     </div>
   );
 }
@@ -200,7 +211,7 @@ export function ReAgentComposerRow({ className, ...props }: ComponentProps<'div'
 }
 
 export function ReAgentComposerAttach({ className, ...props }: ComponentProps<'div'>) {
-  const { addFiles, uploading } = useReAgent();
+  const { addFiles, files, uploading } = useReAgent();
   const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   return (
@@ -210,7 +221,10 @@ export function ReAgentComposerAttach({ className, ...props }: ComponentProps<'d
         type="file"
         hidden
         multiple
-        accept="image/*,application/pdf,.md,.txt,.doc,.docx"
+        accept={
+          files?.accept ??
+          (files === null ? 'image/*,application/pdf,.md,.txt,.doc,.docx' : undefined)
+        }
         onChange={event => {
           const files = event.target.files;
           if (files !== null) {
