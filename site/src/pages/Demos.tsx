@@ -165,7 +165,7 @@ export function Demos({ theme }: { theme: SiteTheme }) {
 
       <p className="mb-4 text-sm text-muted-foreground">{tab.blurb}</p>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-6">
         <div className="relative h-[640px] overflow-hidden rounded-2xl">
           <Demo theme={theme} surface={surface} notify={notify} />
           {notice !== null && (
