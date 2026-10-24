@@ -18,7 +18,7 @@ site that ships with it.
   pnpm install              # install the whole workspace
   pnpm build                # tsc -p tsconfig.build.json -> dist/
   pnpm typecheck            # tsc -p tsconfig.json --noEmit
-  pnpm format               # biome format --write src
+  pnpm format               # biome check --write src (format + import order)
   pnpm site:dev             # run the docs/demo site (Vite, binds 0.0.0.0)
   pnpm site:build           # build the library, then the site -> site/dist
   ```
@@ -188,7 +188,8 @@ document; without it there is no editor UI and no editor tools.
 - **Biome is the formatter** for the library (`biome.json`, linter disabled).
   Its scope is `src/**/*.{ts,tsx}` only — it does **not** touch `styles.css`
   (Tailwind v4 syntax breaks its CSS parser) or the site. Run `pnpm format`
-  after editing `src/`. Enforced style: semicolons, trailing commas, single
+  after editing `src/`; it runs `biome check --write` (formatting plus import
+  order, matching CI). Enforced style: semicolons, trailing commas, single
   quotes, 2-space indent, 100-col width.
 - **TypeScript is strict.** `noUnusedLocals` / `noUnusedParameters` are on.
 - The site is not covered by Biome; match the surrounding style and keep it

@@ -1,5 +1,5 @@
 import { guessMimeType } from './attachments';
-import { getOpfsRoot, getFileSystemTools } from './tools';
+import { getFileSystemTools, getOpfsRoot } from './tools';
 import type { AgentToolDescriptor, ReAgentFileRef, ReAgentFileStore } from './types';
 
 export interface OpfsFileStoreOptions {

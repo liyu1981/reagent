@@ -38,6 +38,8 @@ import {
   ReAgentSendButton,
   ReAgentThinkingPicker,
 } from './reagent-composer';
+import { ReAgentFilePreviewProvider } from './reagent-file-attachment';
+import { ReAgentFileBrowser } from './reagent-file-browser';
 import {
   ReAgentCloseButton,
   ReAgentHeader,
@@ -47,8 +49,6 @@ import {
 } from './reagent-header';
 import { ReAgentMessageList } from './reagent-message-list';
 import { ReAgentRoot } from './reagent-root';
-import { ReAgentFilePreviewProvider } from './reagent-file-attachment';
-import { ReAgentFileBrowser } from './reagent-file-browser';
 import { ReAgentSessionsView } from './reagent-sessions-view';
 import { ReAgentSettingsView } from './settings/reagent-settings-view';
 

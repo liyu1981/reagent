@@ -16,7 +16,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useReAgent } from '../core/hooks';
 import { useTranslation } from '../core/i18n';
 import { cn } from '../lib/utils';
-import { ReAgentFileAttachment } from './reagent-file-attachment';
 import { Badge } from '../primitives/badge';
 import { Button } from '../primitives/button';
 import {
@@ -30,6 +29,7 @@ import {
 import { Input } from '../primitives/input';
 import { Popover, PopoverContent, PopoverTrigger } from '../primitives/popover';
 import { Tooltip, TooltipContent, TooltipTrigger } from '../primitives/tooltip';
+import { ReAgentFileAttachment } from './reagent-file-attachment';
 
 const THINKING_LEVELS: ThinkingLevel[] = ['off', 'low', 'medium', 'high'];
 const SELECTION_PREVIEW_MAX = 400;

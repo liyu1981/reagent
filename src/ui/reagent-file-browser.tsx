@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Folder } from 'lucide-react';
+import { useEffect, useMemo, useState } from 'react';
 import { guessMimeType } from '../core/attachments';
 import { createOpfsFileStore } from '../core/file-store';
 import { useReAgent } from '../core/hooks';
