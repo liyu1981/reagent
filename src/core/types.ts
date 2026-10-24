@@ -84,10 +84,12 @@ export interface AgentConfig {
   activeSessionId: string | null;
 }
 
-export type AgentToolGroup = 'content' | 'editor' | 'web' | 'skills' | 'mcp';
+export type AgentToolGroup = 'content' | 'editor' | 'web' | 'skills' | 'mcp' | 'filesystem';
 
 export interface AgentToolBuildContext {
   editor?: EditorMutationBridge;
+  /** Origin-private filesystem root for filesystem tools; defaults to the browser's OPFS root. */
+  opfs?: FileSystemDirectoryHandle | null;
   /** Storage prefix of the agent being built. */
   prefix?: string;
 }
@@ -99,7 +101,10 @@ export interface AgentToolDescriptor {
   description: string;
   group: AgentToolGroup;
   requiresEditor?: boolean;
+  requiresOpfs?: boolean;
   defaultEnabled?: boolean;
+  /** Filesystem namespace folder under the OPFS root (`<opfs>/<namespace>/`). */
+  namespace?: string;
   build: (ctx: AgentToolBuildContext) => AgentTool<any>;
 }
 

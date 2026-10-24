@@ -1,5 +1,5 @@
 import type { AgentSkillConfig, AgentToolDescriptor } from '@liyu1981/reagent';
-import { ReAgent, saveMcpServers, updateAgentConfig } from '@liyu1981/reagent';
+import { getFileSystemTools, ReAgent, saveMcpServers, updateAgentConfig } from '@liyu1981/reagent';
 import { Type } from '@earendil-works/pi-ai';
 
 import { AgentMarkdown } from '../components/Markdown';
@@ -35,6 +35,9 @@ Generate ideas before judging them:
     enabled: true,
   },
 ];
+
+/** The built-in filesystem tools, installed for a per-agent namespace. */
+const FILESYSTEM_TOOLS = getFileSystemTools('demo');
 
 /** A host-defined tool: the model can ask for the current time. */
 const clockTool: AgentToolDescriptor = {
@@ -84,7 +87,7 @@ export function BatteriesDemo({
       theme={theme}
       surface={surface}
       renderMarkdown={AgentMarkdown}
-      extraDescriptors={[clockTool]}
+      extraDescriptors={[clockTool, ...FILESYSTEM_TOOLS]}
       notify={notify}
     />
   );

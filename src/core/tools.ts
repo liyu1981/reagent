@@ -21,13 +21,35 @@ function requireEditor(editor: EditorMutationBridge | undefined): EditorMutation
 }
 
 /**
+ * Resolve the browser's Origin Private File System root. This is the `<opfs>`
+ * prefix every filesystem namespace folder hangs off; the host never picks a
+ * folder — the agent only ever works inside OPFS.
+ */
+export async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | null> {
+  const storage = typeof navigator !== 'undefined' ? navigator.storage : undefined;
+  if (storage?.getDirectory === undefined) {
+    return null;
+  }
+  try {
+    return await storage.getDirectory();
+  } catch {
+    return null;
+  }
+}
+
+interface ToolRequirements {
+  editor?: boolean;
+  opfs?: boolean;
+}
+
+/**
  * Wrap a tool factory in a registry descriptor. The metadata (id/label/
  * description) is read from a probe build at module load; only the descriptor's
- * `build` ever runs against a real editor.
+ * `build` ever runs against a real editor / filesystem.
  */
 function defineTool<S extends TSchema>(
   group: AgentToolGroup,
-  requiresEditor: boolean,
+  requires: ToolRequirements,
   factory: (ctx: AgentToolBuildContext) => AgentTool<S>,
 ): AgentToolDescriptor {
   const probe = factory({});
@@ -37,9 +59,214 @@ function defineTool<S extends TSchema>(
     label: probe.label,
     description: probe.description,
     group,
-    requiresEditor,
+    requiresEditor: requires.editor,
+    requiresOpfs: requires.opfs,
+    namespace: (probe as AgentTool<S> & { namespace?: string }).namespace,
     build: factory as (ctx: AgentToolBuildContext) => AgentTool<any>,
   };
+}
+
+function opfsSegments(path: string | undefined): string[] {
+  if (path === undefined) {
+    return [];
+  }
+  return path
+    .split('/')
+    .map(segment => segment.trim())
+    .filter(segment => segment !== '' && segment !== '.');
+}
+
+async function resolveOpfsDir(
+  handle: FileSystemDirectoryHandle,
+  namespace: string,
+  segments: string[],
+  create: boolean,
+): Promise<FileSystemDirectoryHandle> {
+  // The first hop is the per-agent namespace folder.
+  let dir: FileSystemDirectoryHandle = await handle.getDirectoryHandle(namespace, { create });
+  for (const segment of segments) {
+    dir = await dir.getDirectoryHandle(segment, { create });
+  }
+  return dir;
+}
+
+export interface OpfsStats {
+  files: number;
+  bytes: number;
+}
+
+async function collectOpfsStats(dir: FileSystemDirectoryHandle): Promise<OpfsStats> {
+  let files = 0;
+  let bytes = 0;
+  for await (const [, entry] of dir) {
+    if (entry.kind === 'directory') {
+      const nested = await collectOpfsStats(entry);
+      files += nested.files;
+      bytes += nested.bytes;
+      continue;
+    }
+    const file = await entry.getFile();
+    files += 1;
+    bytes += file.size;
+  }
+  return { files, bytes };
+}
+
+/** Count files and bytes under an agent filesystem namespace. */
+export async function getOpfsStats(
+  handle: FileSystemDirectoryHandle | null | undefined,
+  namespace: string,
+): Promise<OpfsStats> {
+  const root = handle !== undefined && handle !== null ? handle : await getOpfsRoot();
+  if (root === null) {
+    return { files: 0, bytes: 0 };
+  }
+  try {
+    const dir = await root.getDirectoryHandle(namespace, { create: false });
+    return await collectOpfsStats(dir);
+  } catch {
+    return { files: 0, bytes: 0 };
+  }
+}
+
+export interface OpfsEntry {
+  name: string;
+  kind: 'file' | 'directory';
+  size?: number;
+}
+
+/** List directory entries under an agent filesystem namespace. */
+export async function listOpfsEntries(
+  handle: FileSystemDirectoryHandle | null | undefined,
+  namespace: string,
+  path: string[],
+): Promise<OpfsEntry[]> {
+  const root = handle !== undefined && handle !== null ? handle : await getOpfsRoot();
+  if (root === null) {
+    return [];
+  }
+  let dir: FileSystemDirectoryHandle;
+  try {
+    dir = await resolveOpfsDir(root, namespace, path, false);
+  } catch {
+    return [];
+  }
+  const entries: OpfsEntry[] = [];
+  for await (const [name, entry] of dir) {
+    const kind = entry.kind === 'directory' ? ('directory' as const) : ('file' as const);
+    let size: number | undefined;
+    if (kind === 'file') {
+      size = (await (entry as FileSystemFileHandle).getFile()).size;
+    }
+    entries.push({ name, kind, size });
+  }
+  return entries;
+}
+
+/**
+ * The built-in OPFS (Origin Private File System) tool set. Returns descriptors
+ * for one per-agent namespace folder under the browser's Origin Private File
+ * System root — the tools work inside `<opfs>/<id>/` and create the folder when
+ * it does not exist yet. Hosts install them by passing the result as
+ * `extraDescriptors`.
+ */
+export function getFileSystemTools(id: string): AgentToolDescriptor[] {
+  return [
+    defineTool('filesystem', { opfs: true }, ctx => ({
+      name: 'opfs_list',
+      namespace: id,
+      label: 'List files',
+      description: `List the files and folders in the agent filesystem (Origin Private File System) under "${id}". Paths are relative to the agent filesystem root.`,
+      parameters: Type.Object({
+        path: Type.Optional(
+          Type.String({
+            description:
+              'Directory to list, relative to the agent filesystem root. Defaults to the root.',
+          }),
+        ),
+      }),
+      execute: async (_toolCallId, args) => {
+        const handle = ctx.opfs ?? (await getOpfsRoot());
+        if (handle === undefined || handle === null) {
+          throw new Error(
+            'No filesystem is available — no Origin Private File System directory was found.',
+          );
+        }
+        const segments = opfsSegments((args as { path?: string }).path);
+        const dir = await resolveOpfsDir(handle, id, segments, true);
+        const lines: string[] = [];
+        for await (const [name, entry] of dir) {
+          lines.push(entry.kind === 'directory' ? `${name}/` : name);
+        }
+        return textBlocks(lines.length > 0 ? lines.join('\n') : '(empty)');
+      },
+    })),
+
+    defineTool('filesystem', { opfs: true }, ctx => ({
+      name: 'opfs_read',
+      namespace: id,
+      label: 'Read file',
+      description: `Read a text file from the agent filesystem (Origin Private File System) under "${id}". Paths are relative to the agent filesystem root.`,
+      parameters: Type.Object({
+        path: Type.String({
+          description: 'File path, relative to the agent filesystem root.',
+        }),
+      }),
+      execute: async (_toolCallId, args) => {
+        const handle = ctx.opfs ?? (await getOpfsRoot());
+        if (handle === undefined || handle === null) {
+          throw new Error(
+            'No filesystem is available — no Origin Private File System directory was found.',
+          );
+        }
+        const segments = opfsSegments((args as { path: string }).path);
+        if (segments.length === 0) {
+          throw new Error('A file path is required.');
+        }
+        const file = await (
+          await resolveOpfsDir(handle, id, segments.slice(0, -1), true)
+        ).getFileHandle(segments[segments.length - 1]);
+        const content = await (await file.getFile()).text();
+        return textBlocks(content || '(empty)');
+      },
+    })),
+
+    defineTool('filesystem', { opfs: true }, ctx => ({
+      name: 'opfs_write',
+      namespace: id,
+      label: 'Write file',
+      description: `Write (create or overwrite) a text file in the agent filesystem (Origin Private File System) under "${id}". Paths are relative to the agent filesystem root.`,
+      parameters: Type.Object({
+        path: Type.String({
+          description: 'File path, relative to the agent filesystem root.',
+        }),
+        content: Type.String({
+          description: 'Full content to write to the file.',
+        }),
+      }),
+      execute: async (_toolCallId, args) => {
+        const handle = ctx.opfs ?? (await getOpfsRoot());
+        if (handle === undefined || handle === null) {
+          throw new Error(
+            'No filesystem is available — no Origin Private File System directory was found.',
+          );
+        }
+        const segments = opfsSegments((args as { path: string }).path);
+        if (segments.length === 0) {
+          throw new Error('A file path is required.');
+        }
+        const parentSegments = segments.slice(0, -1);
+        const file = await (await resolveOpfsDir(handle, id, parentSegments, true)).getFileHandle(
+          segments[segments.length - 1],
+          { create: true },
+        );
+        const writable = await file.createWritable();
+        await writable.write((args as { content: string }).content);
+        await writable.close();
+        return textBlocks('Wrote file.');
+      },
+    })),
+  ];
 }
 
 /**
@@ -49,7 +276,7 @@ function defineTool<S extends TSchema>(
  * supplied by the host as injected descriptors.
  */
 export const EDITOR_TOOLS: AgentToolDescriptor[] = [
-  defineTool('editor', true, ctx => ({
+  defineTool('editor', { editor: true }, ctx => ({
     name: 'get_content',
     label: 'Get content',
     description:
@@ -62,7 +289,7 @@ export const EDITOR_TOOLS: AgentToolDescriptor[] = [
     },
   })),
 
-  defineTool('editor', true, ctx => ({
+  defineTool('editor', { editor: true }, ctx => ({
     name: 'update_content',
     label: 'Update content',
     description:
@@ -80,7 +307,7 @@ export const EDITOR_TOOLS: AgentToolDescriptor[] = [
     },
   })),
 
-  defineTool('editor', true, ctx => ({
+  defineTool('editor', { editor: true }, ctx => ({
     name: 'get_selection',
     label: 'Get selection',
     description:
@@ -96,7 +323,7 @@ export const EDITOR_TOOLS: AgentToolDescriptor[] = [
     },
   })),
 
-  defineTool('editor', true, ctx => ({
+  defineTool('editor', { editor: true }, ctx => ({
     name: 'update_selection',
     label: 'Update selection',
     description:
@@ -114,7 +341,7 @@ export const EDITOR_TOOLS: AgentToolDescriptor[] = [
     },
   })),
 
-  defineTool('editor', true, ctx => ({
+  defineTool('editor', { editor: true }, ctx => ({
     name: 'get_commit_note',
     label: 'Get commit note',
     description:
@@ -127,7 +354,7 @@ export const EDITOR_TOOLS: AgentToolDescriptor[] = [
     },
   })),
 
-  defineTool('editor', true, ctx => ({
+  defineTool('editor', { editor: true }, ctx => ({
     name: 'set_commit_note',
     label: 'Set commit note',
     description:
@@ -148,7 +375,7 @@ export const EDITOR_TOOLS: AgentToolDescriptor[] = [
     },
   })),
 
-  defineTool('editor', true, ctx => ({
+  defineTool('editor', { editor: true }, ctx => ({
     name: 'save',
     label: 'Save draft',
     description:
@@ -181,6 +408,8 @@ export const SKILL_TOOL_DESCRIPTOR: AgentToolDescriptor = {
 
 export interface BuildAgentToolsOptions {
   editor?: EditorMutationBridge;
+  /** Origin-private filesystem root override for filesystem tools; defaults to the browser's OPFS root. */
+  opfs?: FileSystemDirectoryHandle | null;
   extraTools?: AgentTool<any>[];
   /** Host-injected descriptors (shown in the tools panel and built into the run). */
   extraDescriptors?: AgentToolDescriptor[];
@@ -194,7 +423,7 @@ export function buildToolsFromDescriptors(
   descriptors: AgentToolDescriptor[],
   options: BuildAgentToolsOptions = {},
 ): AgentTool<any>[] {
-  const { editor, disabledIds = [], prefix } = options;
+  const { editor, opfs, disabledIds = [], prefix } = options;
   const disabled = new Set(disabledIds);
   const out: AgentTool<any>[] = [];
   for (const descriptor of descriptors) {
@@ -204,7 +433,7 @@ export function buildToolsFromDescriptors(
     if (descriptor.requiresEditor === true && editor === undefined) {
       continue;
     }
-    out.push(descriptor.build({ editor, prefix }));
+    out.push(descriptor.build({ editor, opfs, prefix }));
   }
   return out;
 }
@@ -231,6 +460,7 @@ export function activeToolDescriptors(options: {
 export function buildAgentTools(options: BuildAgentToolsOptions = {}): AgentTool<any>[] {
   const {
     editor,
+    opfs,
     extraTools = [],
     extraDescriptors = [],
     disabledIds,
@@ -240,6 +470,7 @@ export function buildAgentTools(options: BuildAgentToolsOptions = {}): AgentTool
   return [
     ...buildToolsFromDescriptors(activeToolDescriptors({ editor, extraDescriptors, hasSkills }), {
       editor,
+      opfs,
       disabledIds,
       prefix,
     }),

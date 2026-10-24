@@ -26,6 +26,8 @@ export interface AgentBuildOptions {
   messages?: AgentMessage[];
   sessionId?: string;
   editor?: EditorMutationBridge;
+  /** Origin-private filesystem root override for filesystem tools; defaults to the browser's OPFS root. */
+  opfs?: FileSystemDirectoryHandle | null;
   /** Extra tools (e.g. MCP) merged into the built-in editor tools. */
   extraTools?: AgentTool<any>[];
   /** Host-injected descriptors merged into the registry. */
@@ -49,6 +51,7 @@ export function buildAgent(options: AgentBuildOptions): Agent {
       thinkingLevel: options.thinkingLevel,
       tools: buildAgentTools({
         editor: options.editor,
+        opfs: options.opfs,
         extraTools: options.extraTools,
         extraDescriptors: options.extraDescriptors,
         disabledIds: options.disabledToolIds,

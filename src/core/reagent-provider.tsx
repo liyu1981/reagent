@@ -55,7 +55,7 @@ import {
 } from './session-store';
 import { enabledSkillDefinitions, skillsSystemPrompt } from './skill-registry';
 import { resolveStoragePrefix, storageKey } from './storage';
-import { buildAgentTools, listToolDescriptors } from './tools';
+import { buildAgentTools, getOpfsRoot, listToolDescriptors } from './tools';
 import type {
   AgentAttachment,
   AgentConfig,
@@ -129,6 +129,13 @@ export interface ReAgentContextValue {
 
   toolLabels: Map<string, string>;
   tools: AgentToolDescriptor[];
+  /** Installed built-in filesystem tools (host-installed via `getFileSystemTools`). */
+  filesystem: {
+    namespace: string;
+    tools: AgentToolDescriptor[];
+    /** Origin-private filesystem root (browser OPFS) the namespace folder hangs off. */
+    opfs: FileSystemDirectoryHandle | null;
+  } | null;
   /** WebMCP tools the current page exposes (empty when unavailable). */
   webmcp: { available: boolean; toolCount: number; tools: AgentTool<any>[] };
   /** Host-injected providers and their in-memory config. */
@@ -147,7 +154,7 @@ export interface ReAgentContextValue {
   renderMarkdown: ReAgentMarkdown | undefined;
 }
 
-export type ReAgentView = 'chat' | 'settings' | 'sessions';
+export type ReAgentView = 'chat' | 'settings' | 'sessions' | 'filesystem';
 
 export const ReAgentContext = createContext<ReAgentContextValue | null>(null);
 
@@ -245,6 +252,7 @@ export function ReAgentProvider({
   const [uploading, setUploading] = useState(false);
   const [selectionExpanded, setSelectionExpanded] = useState(false);
   const [view, setView] = useState<ReAgentView>('chat');
+  const [opfsRoot, setOpfsRoot] = useState<FileSystemDirectoryHandle | null>(null);
 
   const agentRef = useRef<Agent | null>(null);
   const unsubRef = useRef<(() => void) | null>(null);
@@ -252,6 +260,7 @@ export function ReAgentProvider({
   const sessionsRef = useRef<AgentSession[]>([]);
   const draftRef = useRef(draft ?? null);
   const editorRef = useRef(editor);
+  const opfsRef = useRef<FileSystemDirectoryHandle | null>(null);
   const extraToolsRef = useRef(extraTools);
   const webmcpToolsRef = useRef<AgentTool<any>[]>([]);
   const extraDescriptorsRef = useRef(extraDescriptors);
@@ -276,6 +285,22 @@ export function ReAgentProvider({
   }, [editor]);
 
   useEffect(() => {
+    let cancelled = false;
+    void getOpfsRoot().then(handle => {
+      if (!cancelled) {
+        setOpfsRoot(handle);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    opfsRef.current = opfsRoot;
+  }, [opfsRoot]);
+
+  useEffect(() => {
     selectionRef.current = selection;
   }, [selection]);
 
@@ -288,6 +313,7 @@ export function ReAgentProvider({
     }
     agent.state.tools = buildAgentTools({
       editor: editorRef.current ?? undefined,
+      opfs: opfsRef.current ?? undefined,
       extraTools: [...mcp.getTools(), ...webmcpToolsRef.current, ...(extraToolsRef.current ?? [])],
       extraDescriptors: extraDescriptorsRef.current ?? [],
       disabledIds: configRef.current.toolsDisabled,
@@ -570,6 +596,7 @@ export function ReAgentProvider({
           messages: sessionNow.messages,
           sessionId: sessionNow.id,
           editor: editorRef.current ?? undefined,
+          opfs: opfsRef.current ?? undefined,
           extraTools: extra,
           extraDescriptors: extraDescriptorsRef.current ?? [],
           disabledToolIds: configRef.current.toolsDisabled,
@@ -979,6 +1006,18 @@ export function ReAgentProvider({
 
   const sessionTree = useMemo(() => buildSessionTree(sessions), [sessions]);
 
+  const installedFilesystemTools = (extraDescriptorsRef.current ?? []).filter(
+    descriptor => descriptor.group === 'filesystem',
+  );
+  const filesystem =
+    installedFilesystemTools.length > 0 && installedFilesystemTools[0]?.namespace !== undefined
+      ? {
+          namespace: installedFilesystemTools[0].namespace,
+          tools: installedFilesystemTools,
+          opfs: opfsRoot,
+        }
+      : null;
+
   const value: ReAgentContextValue = {
     config,
     updateConfig,
@@ -1037,6 +1076,7 @@ export function ReAgentProvider({
       hasEditor: editor !== undefined && editor !== null,
       hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,
     }),
+    filesystem,
     t,
     language,
     theme,

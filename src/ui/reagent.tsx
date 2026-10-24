@@ -47,6 +47,7 @@ import {
 } from './reagent-header';
 import { ReAgentMessageList } from './reagent-message-list';
 import { ReAgentRoot } from './reagent-root';
+import { ReAgentFileBrowser } from './reagent-file-browser';
 import { ReAgentSessionsView } from './reagent-sessions-view';
 import { ReAgentSettingsView } from './settings/reagent-settings-view';
 
@@ -154,7 +155,9 @@ function ReAgentChrome({
   const { view } = useReAgent();
   return (
     <ReAgentRoot data-surface={surface} className={cn(surfaceVariants({ surface }), className)}>
-      {view === 'settings' ? (
+      {view === 'filesystem' ? (
+        <ReAgentFileBrowser />
+      ) : view === 'settings' ? (
         <ReAgentSettingsView />
       ) : view === 'sessions' ? (
         <ReAgentSessionsView />

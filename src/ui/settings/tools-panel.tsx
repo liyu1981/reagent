@@ -3,7 +3,7 @@ import { useTranslation } from '../../core/i18n';
 import type { AgentToolGroup } from '../../core/types';
 import { Switch } from '../../primitives/switch';
 
-const GROUPS: AgentToolGroup[] = ['content', 'editor', 'web', 'skills', 'mcp'];
+const GROUPS: AgentToolGroup[] = ['content', 'editor', 'web', 'skills', 'mcp', 'filesystem'];
 
 export function ReAgentToolsPanel() {
   const { config, update } = useReAgentConfig();

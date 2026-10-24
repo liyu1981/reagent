@@ -31,7 +31,8 @@ const TABS: { id: DemoMode; label: string; blurb: string }[] = [
   {
     id: 'batteries',
     label: 'Skills · Tools · MCP',
-    blurb: 'Two host-defined skills, a custom tool and the Exa MCP server.',
+    blurb:
+      'Two host-defined skills, a custom tool, the built-in filesystem tools and the Exa MCP server.',
   },
   {
     id: 'webmcp',

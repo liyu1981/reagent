@@ -1,7 +1,8 @@
 import { Check, ChevronDown, ShieldAlert } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useReAgent, useReAgentConfig } from '../../core/hooks';
 import { useToast, useTranslation } from '../../core/i18n';
+import { getOpfsStats } from '../../core/tools';
 import { setKeyRetention } from '../../core/models';
 import { cn } from '../../lib/utils';
 import { Button } from '../../primitives/button';
@@ -20,17 +21,36 @@ const RETENTION_OPTIONS: ReadonlyArray<{ value: number | null; labelKey: string 
 ];
 
 /**
- * The General settings tab. First (and, for now, only) option: how long saved
- * API keys are retained in this browser. "Keep forever" is opt-in behind a
- * warning and a second confirmation.
+ * The General settings tab. Sections: API key retention and the installed
+ * filesystem tools. "Keep forever" is opt-in behind a warning and a second
+ * confirmation.
  */
 export function ReAgentGeneralPanel() {
   const { t } = useTranslation();
   const toast = useToast();
-  const { storagePrefix } = useReAgent();
+  const { storagePrefix, filesystem, setView } = useReAgent();
   const { config } = useReAgentConfig();
   const [open, setOpen] = useState(false);
   const [confirmForever, setConfirmForever] = useState(false);
+  const [fsStats, setFsStats] = useState<{ files: number; bytes: number } | null>(null);
+
+  useEffect(() => {
+    const handle = filesystem?.opfs ?? null;
+    const namespace = filesystem?.namespace ?? '';
+    if (handle === null) {
+      setFsStats(null);
+      return;
+    }
+    let cancelled = false;
+    void getOpfsStats(handle, namespace).then(next => {
+      if (!cancelled) {
+        setFsStats(next);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [filesystem?.opfs, filesystem?.namespace]);
 
   const retention = config.keyRetentionMs;
   const currentLabelKey =
@@ -105,6 +125,30 @@ export function ReAgentGeneralPanel() {
           )}
         </div>
       </section>
+
+      {filesystem !== null ? (
+        <section className="space-y-2">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            {t('agent.fsTitle')}
+          </p>
+          <div className="space-y-3 rounded-xl border border-border/50 p-3">
+            <p className="text-xs text-muted-foreground">
+              {t('agent.fsDescription', { fs: filesystem.namespace })}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {t('agent.fsStats', { files: fsStats?.files ?? 0, bytes: fsStats?.bytes ?? 0 })}
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setView('filesystem')}
+              disabled={filesystem.opfs === null}
+            >
+              {t('agent.fsBrowse')}
+            </Button>
+          </div>
+        </section>
+      ) : null}
 
       <ConfirmDialog
         open={confirmForever}
