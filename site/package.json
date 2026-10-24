@@ -5,7 +5,7 @@
   "type": "module",
   "description": "Demo and documentation site for @liyu1981/reagent.",
   "scripts": {
-    "dev": "oj dev",
+    "dev": "node scripts/dev.mjs",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --base /reagent/"
   },
