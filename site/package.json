@@ -6,7 +6,7 @@
   "description": "Demo and documentation site for @liyu1981/reagent.",
   "scripts": {
     "dev": "node scripts/dev.mjs",
-    "build": "tsc --noEmit && vite build",
+    "build": "tsc --noEmit && vite build && node scripts/build-404.mjs",
     "preview": "vite preview --base /reagent/"
   },
   "dependencies": {

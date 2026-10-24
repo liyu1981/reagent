@@ -1,4 +1,4 @@
-import { Link, Route, Routes } from 'react-router-dom';
+import { Link, Navigate, Route, Routes } from 'react-router-dom';
 
 import { Layout } from './components/Layout';
 import { useSiteTheme } from './lib/theme';
@@ -36,6 +36,10 @@ export function App() {
         <Route path="demos" element={<Demos theme={theme} />} />
         <Route path="docs" element={<Docs />} />
         <Route path="docs/:slug" element={<Docs />} />
+        <Route
+          path="filesystem-tools"
+          element={<Navigate to="/docs/tools-and-skills#filesystem-tools" replace />}
+        />
         <Route path="*" element={<NotFound />} />
       </Route>
     </Routes>

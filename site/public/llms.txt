@@ -4,25 +4,25 @@
 
 - Package: `@liyu1981/reagent` (npm)
 - Repository: https://github.com/liyu1981/reagent
-- Documentation: https://liyu1981.github.io/reagent/#/docs
-- Live demos: https://liyu1981.github.io/reagent/#/demos
+- Documentation: https://liyu1981.github.io/reagent/docs
+- Live demos: https://liyu1981.github.io/reagent/demos
 - Integration skill (for coding agents): https://liyu1981.github.io/reagent/skill.md
 
 ## Documentation
 
-- [Introduction](https://liyu1981.github.io/reagent/#/docs/introduction): what ReAgent is, architecture and storage model.
-- [Installation](https://liyu1981.github.io/reagent/#/docs/installation): install the package and set up Tailwind v4.
-- [Quick start](https://liyu1981.github.io/reagent/#/docs/quick-start): render the preset and configure a model.
-- [Styling](https://liyu1981.github.io/reagent/#/docs/styling): `@source`, design tokens and surfaces.
-- [Theming](https://liyu1981.github.io/reagent/#/docs/theming): dark mode, the `theme` prop, i18n overrides.
-- [Host integrations](https://liyu1981.github.io/reagent/#/docs/host-integrations): markdown, custom tools, uploads, editor bridge.
-- [Models & providers](https://liyu1981.github.io/reagent/#/docs/models): every pi-ai provider, credentials, verification.
-- [Tools & skills](https://liyu1981.github.io/reagent/#/docs/tools-and-skills): descriptors, the skill loader, MCP.
-- [Sessions & persistence](https://liyu1981.github.io/reagent/#/docs/sessions): the conversation tree and IndexedDB.
-- [Multiple agents & storage](https://liyu1981.github.io/reagent/#/docs/multiple-agents): isolate agents with `storagePrefix`.
-- [Components & props](https://liyu1981.github.io/reagent/#/docs/components): the full `<ReAgent>` props table and UI parts.
-- [Headless usage](https://liyu1981.github.io/reagent/#/docs/headless): build a custom UI on the provider and hooks.
-- [For coding agents](https://liyu1981.github.io/reagent/#/docs/for-agents): this index and the skill.md integration guide.
+- [Introduction](https://liyu1981.github.io/reagent/docs/introduction): what ReAgent is, architecture and storage model.
+- [Installation](https://liyu1981.github.io/reagent/docs/installation): install the package and set up Tailwind v4.
+- [Quick start](https://liyu1981.github.io/reagent/docs/quick-start): render the preset and configure a model.
+- [Styling](https://liyu1981.github.io/reagent/docs/styling): `@source`, design tokens and surfaces.
+- [Theming](https://liyu1981.github.io/reagent/docs/theming): dark mode, the `theme` prop, i18n overrides.
+- [Host integrations](https://liyu1981.github.io/reagent/docs/host-integrations): markdown, custom tools, uploads, editor bridge.
+- [Models & providers](https://liyu1981.github.io/reagent/docs/models): every pi-ai provider, credentials, verification.
+- [Tools & skills](https://liyu1981.github.io/reagent/docs/tools-and-skills): descriptors, the skill loader, MCP.
+- [Sessions & persistence](https://liyu1981.github.io/reagent/docs/sessions): the conversation tree and IndexedDB.
+- [Multiple agents & storage](https://liyu1981.github.io/reagent/docs/multiple-agents): isolate agents with `storagePrefix`.
+- [Components & props](https://liyu1981.github.io/reagent/docs/components): the full `<ReAgent>` props table and UI parts.
+- [Headless usage](https://liyu1981.github.io/reagent/docs/headless): build a custom UI on the provider and hooks.
+- [For coding agents](https://liyu1981.github.io/reagent/docs/for-agents): this index and the skill.md integration guide.
 
 ## Source
 

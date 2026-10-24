@@ -1,9 +1,13 @@
+import { createElement, isValidElement, type ReactNode } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import remarkGfm from 'remark-gfm';
 
 import { cn } from '../lib/cn';
 import { highlightCode } from '../lib/highlight';
+import { slugifyHeading } from '../lib/slug';
+
+const BASE_URL = import.meta.env.BASE_URL;
 
 /**
  * Map a markdown link from the docs to a route. External URLs and in-page
@@ -30,19 +34,59 @@ function toRoute(href: string): string | null {
   return clean.startsWith('docs/') ? `/${clean}` : `/docs/${clean}`;
 }
 
-const components: Components = {
-  a({ href, children }) {
-    const route = href === undefined ? null : toRoute(href);
-    if (route !== null && !route.startsWith('#')) {
-      return <Link to={route}>{children}</Link>;
-    }
-    const external = href !== undefined && /^https?:/i.test(href);
+function nodeText(node: ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(nodeText).join('');
+  }
+  if (isValidElement(node)) {
+    return nodeText((node.props as { children?: ReactNode }).children);
+  }
+  return '';
+}
+
+function heading(level: 1 | 2 | 3 | 4 | 5 | 6) {
+  return ({ children }: { children?: ReactNode }) =>
+    createElement(
+      `h${level}`,
+      { id: slugifyHeading(nodeText(children)), className: 'scroll-mt-20' },
+      children,
+    );
+}
+
+function MarkdownLink({ href, children }: { href?: string; children?: ReactNode }) {
+  const location = useLocation();
+  if (href !== undefined && href.startsWith('#')) {
+    return <Link to={{ pathname: location.pathname, hash: href }}>{children}</Link>;
+  }
+  const external = href !== undefined && /^https?:/i.test(href);
+  if (external) {
     return (
-      <a href={href} target={external ? '_blank' : undefined} rel={external ? 'noreferrer' : undefined}>
+      <a href={href} target="_blank" rel="noreferrer">
         {children}
       </a>
     );
-  },
+  }
+  const route = href === undefined ? null : toRoute(href);
+  if (route !== null) {
+    return <Link to={route}>{children}</Link>;
+  }
+  if (href !== undefined && /\.[a-z0-9]+$/i.test(href)) {
+    return <a href={`${BASE_URL}${href.replace(/^\.?\//, '')}`}>{children}</a>;
+  }
+  return <a href={href}>{children}</a>;
+}
+
+const components: Components = {
+  a: MarkdownLink,
+  h1: heading(1),
+  h2: heading(2),
+  h3: heading(3),
+  h4: heading(4),
+  h5: heading(5),
+  h6: heading(6),
   code({ className, children }) {
     const language = /language-(\w+)/.exec(className ?? '')?.[1];
     if (language !== undefined) {

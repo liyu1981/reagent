@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HashRouter } from 'react-router-dom';
+import { BrowserRouter } from 'react-router-dom';
 
 import { App } from './App';
 import { consumeSessionReset } from './lib/agent-storage';
@@ -10,6 +10,27 @@ const container = document.getElementById('root');
 if (container === null) {
   throw new Error('#root not found');
 }
+
+const BASE_URL = import.meta.env.BASE_URL;
+const BASENAME = BASE_URL === '/' ? '/' : BASE_URL.replace(/\/$/, '');
+
+/** Convert bookmarks from the old hash router to real browser paths. */
+function normalizeLegacyHash(): void {
+  const hash = window.location.hash;
+  if (hash === '') {
+    return;
+  }
+  const base = BASE_URL.replace(/\/$/, '');
+  if (hash === '#filesystem-tools') {
+    window.history.replaceState(null, '', `${base}/docs/tools-and-skills#filesystem-tools`);
+    return;
+  }
+  if (hash.startsWith('#/')) {
+    window.history.replaceState(null, '', `${base}${hash.slice(1)}`);
+  }
+}
+
+normalizeLegacyHash();
 
 // A deploy replaces hashed chunks while a tab may still hold the old bundle, so
 // a later dynamic import (e.g. a provider API) 404s. Reload once to pick up the
@@ -32,9 +53,9 @@ async function bootstrap(): Promise<void> {
 
   createRoot(container as HTMLElement).render(
     <StrictMode>
-      <HashRouter>
+      <BrowserRouter basename={BASENAME}>
         <App />
-      </HashRouter>
+      </BrowserRouter>
     </StrictMode>,
   );
 }

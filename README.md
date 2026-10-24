@@ -10,8 +10,8 @@ and `pi-ai`; your keys and conversations stay on the device.
 [![docs](https://img.shields.io/badge/docs-live-6366f1)](https://liyu1981.github.io/reagent/)
 [![deploy](https://github.com/liyu1981/reagent/actions/workflows/deploy-pages.yml/badge.svg)](https://github.com/liyu1981/reagent/actions/workflows/deploy-pages.yml)
 
-📖 **[Documentation](https://liyu1981.github.io/reagent/#/docs)** ·
-🧪 **[Demos](https://liyu1981.github.io/reagent/#/demos)** ·
+📖 **[Documentation](https://liyu1981.github.io/reagent/docs)** ·
+🧪 **[Demos](https://liyu1981.github.io/reagent/demos)** ·
 🚀 **[Live demo](https://liyu1981.github.io/reagent/)** ·
 📦 **[npm](https://www.npmjs.com/package/@liyu1981/reagent)**
 
@@ -30,7 +30,7 @@ and `pi-ai`; your keys and conversations stay on the device.
 - **Bring your own provider.** OpenRouter (verified for browser use) and any
   OpenAI-compatible endpoint such as Ollama, LM Studio or vLLM. Other cloud
   gateways are disabled until verified — see
-  [browser support](https://liyu1981.github.io/reagent/#/docs/browser-support).
+  [browser support](https://liyu1981.github.io/reagent/docs/browser-support).
 - **WebMCP aware.** If the page exposes tools through `document.modelContext`,
   ReAgent detects them and hands them to the model automatically.
 - **Host-injectable providers.** Register your own LLM provider with a custom
@@ -72,15 +72,15 @@ export function AgentPanel() {
 
 Live demos, each with its full source on screen:
 
-- **[Vanilla](https://liyu1981.github.io/reagent/#/demos)** — the preset and
+- **[Vanilla](https://liyu1981.github.io/reagent/demos)** — the preset and
   nothing else.
-- **[Skills, tools & MCP](https://liyu1981.github.io/reagent/#/demos)** —
+- **[Skills, tools & MCP](https://liyu1981.github.io/reagent/demos)** —
   host-defined skills, a custom tool and the Exa MCP server.
-- **[Filesystem · Attachments](https://liyu1981.github.io/reagent/#/demos)** —
+- **[Filesystem · Attachments](https://liyu1981.github.io/reagent/demos)** —
   OPFS-backed attachments and tools with a fake, in-page LLM.
-- **[WebMCP](https://liyu1981.github.io/reagent/#/demos)** — tools registered by
+- **[WebMCP](https://liyu1981.github.io/reagent/demos)** — tools registered by
   the page through WebMCP.
-- **[Host provider](https://liyu1981.github.io/reagent/#/demos)** — a
+- **[Host provider](https://liyu1981.github.io/reagent/demos)** — a
   host-injected provider with its own setup UI.
 
 For the demos that use a real model, ReAgent opens a session and points you at
@@ -123,7 +123,7 @@ Every host integration is optional.
 | `draft` / `editor` / `selection` | editor integration | — | Let the agent edit an open document. |
 | `onClose` / `onClearSelection` | callbacks | — | Header/selection hooks. |
 
-See the [components reference](https://liyu1981.github.io/reagent/#/docs/components)
+See the [components reference](https://liyu1981.github.io/reagent/docs/components)
 for the full list.
 
 ## Headless
@@ -168,7 +168,7 @@ ReAgent registers the cloud providers **verified to work from the browser**
 Most AI gateways block direct browser requests (missing CORS headers), so the
 rest of `pi-ai`'s providers are disabled until verified or put behind a backend
 proxy. See the
-[browser support table](https://liyu1981.github.io/reagent/#/docs/browser-support).
+[browser support table](https://liyu1981.github.io/reagent/docs/browser-support).
 
 Credentials are managed from the settings UI or programmatically:
 

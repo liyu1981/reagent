@@ -11,7 +11,7 @@ The agent loop runs **in the browser** on `@earendil-works/pi-agent-core` and
 `pi-ai`; API keys and conversations stay on the device.
 
 This skill is a self-contained integration guide. The live docs are at
-<https://liyu1981.github.io/reagent/#/docs> and the index at
+<https://liyu1981.github.io/reagent/docs> and the index at
 <https://liyu1981.github.io/reagent/llms.txt>.
 
 ## 1. Install
@@ -168,7 +168,7 @@ config store also works outside React via `getAgentConfig` /
 
 ## 9. Reference
 
-- Docs: <https://liyu1981.github.io/reagent/#/docs>
-- Demos (with full source): <https://liyu1981.github.io/reagent/#/demos>
+- Docs: <https://liyu1981.github.io/reagent/docs>
+- Demos (with full source): <https://liyu1981.github.io/reagent/demos>
 - Repository: <https://github.com/liyu1981/reagent>
 - npm: <https://www.npmjs.com/package/@liyu1981/reagent>

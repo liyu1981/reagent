@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
-import { Link, NavLink, useNavigate, useParams } from 'react-router-dom';
+import { useEffect, useMemo } from 'react';
+import { Link, NavLink, useLocation, useNavigate, useParams } from 'react-router-dom';
 
 import { CloudProviderTestBench } from '../components/CloudProviderTestBench';
 import { Markdown } from '../components/Markdown';
 import { ArrowLeftIcon, ArrowRightIcon } from '../components/icons';
 import { DOCS, DOC_GROUPS, docNeighbours, getDoc } from '../docs';
+import { docHeadings } from '../lib/doc-toc';
 import { cn } from '../lib/cn';
 
 function stripTitle(content: string): string {
@@ -14,12 +15,23 @@ function stripTitle(content: string): string {
 export function Docs() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const doc = getDoc(slug);
   const { prev, next } = docNeighbours(doc.slug);
+  const headings = useMemo(() => docHeadings(doc.content), [doc.content]);
+  const activeHeading = location.hash === '' ? null : decodeURIComponent(location.hash.slice(1));
 
   useEffect(() => {
-    window.scrollTo({ top: 0 });
-  }, [doc.slug]);
+    if (location.hash === '') {
+      window.scrollTo({ top: 0 });
+      return;
+    }
+    const id = decodeURIComponent(location.hash.slice(1));
+    const timer = window.setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ block: 'start' });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [doc.slug, location.hash]);
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10 sm:px-6">
@@ -120,6 +132,34 @@ export function Docs() {
             )}
           </nav>
         </article>
+
+        {headings.length > 0 && (
+          <aside className="hidden w-56 shrink-0 xl:block">
+            <div className="sticky top-20 max-h-[calc(100dvh-6rem)] overflow-y-auto border-l border-border/70 pl-4">
+              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                On this page
+              </p>
+              <ul className="space-y-0.5 text-sm">
+                {headings.map(heading => (
+                  <li key={heading.id}>
+                    <Link
+                      to={{ pathname: location.pathname, hash: `#${heading.id}` }}
+                      className={cn(
+                        'block rounded-md py-1 transition',
+                        heading.depth === 3 ? 'pl-6 text-xs' : 'px-3',
+                        activeHeading === heading.id
+                          ? 'bg-accent font-medium text-accent-foreground'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      )}
+                    >
+                      {heading.text}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </aside>
+        )}
       </div>
     </div>
   );

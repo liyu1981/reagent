@@ -2,6 +2,8 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 
 import { cn } from '../lib/cn';
 import type { ThemePreference } from '../lib/theme';
+
+const BASE_URL = import.meta.env.BASE_URL;
 import { GithubIcon, MonitorIcon, MoonIcon, SunIcon } from './icons';
 
 const NAV = [
@@ -93,7 +95,7 @@ export function Layout({
       <header className="sticky top-0 z-40 border-b border-border/70 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-4 px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2 font-semibold tracking-tight">
-            <img src="favicon.svg" alt="" className="size-7" />
+            <img src={`${BASE_URL}favicon.svg`} alt="" className="size-7" />
             ReAgent
             <span className="ml-1 hidden rounded-full border border-border px-2 py-0.5 text-[10px] font-medium text-muted-foreground sm:inline">
               v{__APP_VERSION__}
@@ -178,10 +180,10 @@ export function Layout({
             >
               npm
             </a>
-            <a href="llms.txt" className="hover:text-foreground">
+            <a href={`${BASE_URL}llms.txt`} className="hover:text-foreground">
               llms.txt
             </a>
-            <a href="skill.md" className="hover:text-foreground">
+            <a href={`${BASE_URL}skill.md`} className="hover:text-foreground">
               skill.md
             </a>
           </div>
