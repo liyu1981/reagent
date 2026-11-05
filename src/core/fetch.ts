@@ -16,6 +16,10 @@ import { hostProviderFetch, hostProviderRequestHeaders } from './host-providers'
  *
  * Telemetry headers are stripped globally; the auth header is normalized per
  * provider (the model's `provider` id is available at request time).
+ *
+ * OpenRouter is a special case: its Anthropic-protocol endpoint is reachable
+ * from the browser, but only once the client's `anthropic-version`/`anthropic-beta`
+ * headers are dropped (they are missing from its `Access-Control-Allow-Headers`).
  */
 
 /** Prefixes stripped wholesale (SDK telemetry). */
@@ -56,6 +60,11 @@ interface ProviderAuthProfile {
 const PROVIDER_AUTH: Record<string, ProviderAuthProfile> = {
   // Anthropic Messages API, but authenticated with `Authorization: Bearer`.
   'vercel-ai-gateway': { bearer: true },
+  // OpenRouter serves an Anthropic-compatible `/api/v1/messages` endpoint (used
+  // by its Anthropic models) but its CORS preflight only allows a fixed header
+  // list that omits `anthropic-version` and `anthropic-beta`. The endpoint
+  // accepts requests without either, so drop them.
+  openrouter: { drop: ['anthropic-version', 'anthropic-beta'] },
 };
 
 function requestUrl(input: RequestInfo | URL): string {

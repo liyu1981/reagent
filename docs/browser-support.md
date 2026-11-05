@@ -25,7 +25,7 @@ allows browser (CORS) requests.
 | Provider | Status | Notes |
 | -------- | ------ | ----- |
 | Custom local LLM (`ollama`) | ✅ Supported | Any OpenAI-compatible endpoint the browser can reach. Always available. |
-| OpenRouter (`openrouter`) | ✅ Supported | Verified end-to-end (test + send). Its `/models` list is public. |
+| OpenRouter (`openrouter`) | ✅ Supported | Verified end-to-end (test + send). Its `/models` list is public. Its Anthropic-protocol endpoint needs header trimming in the browser (below). |
 | Fireworks (`fireworks`) | ❌ Not supported | `/inference/v1/messages` returns no CORS headers. |
 | MiniMax (`minimax`) | ❌ Not supported | Preflight rejects the Anthropic client's headers. |
 | MiniMax CN (`minimax-cn`) | ❌ Not supported | Same as MiniMax. |
@@ -71,6 +71,20 @@ allows browser (CORS) requests.
 Only the providers in `BROWSER_SUPPORTED_PROVIDERS` (`@liyu1981/reagent`) are
 registered by default; everything else is hidden from **Settings → Model**
 unless it is [re-enabled as a custom cloud provider](./models).
+
+### OpenRouter and Anthropic-protocol models
+
+Some OpenRouter models (its Claude entries) are served over OpenRouter's
+Anthropic-compatible endpoint, `https://openrouter.ai/api/v1/messages`, which
+pi-ai's Anthropic client reaches through the SDK's `beta.messages` resource. Its
+CORS preflight allows a fixed header list that **omits `anthropic-version` and
+`anthropic-beta`**, so the browser blocks the request with
+*"Request header field anthropic-version is not allowed by
+Access-Control-Allow-Headers in preflight response"*. The endpoint does not
+need either header, so ReAgent's browser `fetch` drops both for `openrouter`
+(see [Models & providers](./models#gateways-that-want-a-different-header)). The
+only cost is the beta features those headers request (interleaved thinking),
+which are unavailable from the browser.
 
 ## Testing providers from this page
 

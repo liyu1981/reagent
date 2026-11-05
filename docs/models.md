@@ -105,6 +105,16 @@ alone. On top of that, the fetch drops SDK telemetry headers (`x-stainless-*`,
 `x-should-retry`) and `anthropic-dangerous-direct-browser-access` everywhere
 except `api.anthropic.com` (which needs it for browser CORS).
 
+**OpenRouter** serves its Anthropic models over an Anthropic-protocol endpoint
+(`/api/v1/messages`) reached through the Anthropic SDK's beta resource, which
+always sends `anthropic-version` (and `anthropic-beta` for thinking). OpenRouter's
+CORS preflight allows neither, so the browser blocks the request. Its endpoint
+accepts requests without them, so the fetch drops both for `openrouter`; the
+models work, minus the beta features those headers enable. Models whose protocol
+pi-ai does not know (a live model newer than the bundled catalog) inherit the
+OpenAI-compatible request shape instead, which OpenRouter accepts for every
+model.
+
 ## Credentials
 
 Keys are stored per provider in `localStorage` under

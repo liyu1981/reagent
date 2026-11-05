@@ -620,10 +620,18 @@ async function fetchModelIds(
   return undefined;
 }
 
+function liveTemplate(catalog: readonly Model<Api>[]): Model<Api> | undefined {
+  // Ids the catalog does not know inherit a template's api and base URL. Prefer
+  // the OpenAI-compatible one: it is the widest-supported protocol, and on
+  // gateways like OpenRouter it is the only one every model is served under.
+  return catalog.find(model => model.api === 'openai-completions') ?? catalog[0];
+}
+
 /** Build registry models from live ids, reusing catalog metadata where known. */
 function buildLiveModels(provider: Provider<Api>, ids: string[]): Model<Api>[] | undefined {
-  const catalog = new Map(provider.getModels().map(model => [model.id, model]));
-  const template = provider.getModels()[0];
+  const catalogModels = provider.getModels();
+  const catalog = new Map(catalogModels.map(model => [model.id, model]));
+  const template = liveTemplate(catalogModels);
   const models: Model<Api>[] = [];
   for (const id of ids) {
     const known = catalog.get(id);
