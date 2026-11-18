@@ -128,51 +128,156 @@ Wire `notify` into your toast system:
 ## Gating agent calls
 
 `beforeAgentCall` runs **before every agent call** (every send) and may be
-async. It is the place for host checks that should not interrupt the
-conversation: refreshing a proxy session, re-confirming auth every few minutes,
-topping up credits. Return nothing (or `true`, or `{ ok: true }`) to let the call
-through; return `false` or `{ ok: false, message, ui }` to stop it. While the gate
-runs — and when it blocks — the user's input, attachments and transcript are
-untouched: nothing is sent to the model, nothing is appended to the
-conversation.
+async. Pass it to the preset `<ReAgent>`, or to `<ReAgentProvider>` if you build
+your own layout. Use it for host checks that must not interrupt the
+conversation: a proxy session that expires every few minutes, a re-auth or
+top-up prompt, a quota check. While the gate runs — and when it blocks — the
+typed input, the attachments and the transcript are untouched: nothing is sent
+to the model and nothing is appended to the conversation.
+
+| Gate returns | Effect |
+| ------------ | ------ |
+| `undefined`, `true`, `{ ok: true }` | The call continues. |
+| `false`, `{ ok: false }` | The call stops; the user sees the default "not sent" line. |
+| `{ ok: false, message, ui }` | The call stops with your reason, and optionally your inline UI. |
+| throws / rejects | Treated as a block; the error message is the reason. |
+
+The context is `ReAgentCallContext`: `session` (`null` when the call would start
+a new conversation), `model` (`{ providerId, modelId }` or `null`), `prompt`
+(the text that would be sent, selection wrapper already applied) and
+`attachmentCount`. The gate runs once per send, not per model round-trip —
+tool-call continuations inside a single turn are not gated.
+
+### Waiting on a dialog
+
+The cleanest way to re-confirm auth: `await` your own modal inside the gate. The
+send button is disabled and shows a spinner while the promise is pending, and
+the call continues in the same `send()` once you resolve it — no retry, no
+intermediate state in the transcript.
+
+```tsx
+import { useCallback, useRef, useState } from 'react';
+
+function useAuthGate() {
+  const [open, setOpen] = useState(false);
+  const answer = useRef<((ok: boolean) => void) | null>(null);
+
+  const beforeAgentCall = useCallback(async () => {
+    if (await proxy.sessionStillValid()) {
+      return; // pass straight through
+    }
+    const ok = await new Promise<boolean>(resolve => {
+      answer.current = resolve;
+      setOpen(true);
+    });
+    return ok ? undefined : { ok: false, message: 'Re-authentication was cancelled.' };
+  }, []);
+
+  const dialog = (
+    <ReAuthDialog
+      open={open}
+      onConfirm={async () => {
+        await proxy.reauthenticate();
+        answer.current?.(true);
+        setOpen(false);
+      }}
+      onCancel={() => {
+        answer.current?.(false);
+        setOpen(false);
+      }}
+    />
+  );
+
+  return { beforeAgentCall, dialog };
+}
+
+// const { beforeAgentCall, dialog } = useAuthGate();
+// <ReAgent beforeAgentCall={beforeAgentCall} /> … {dialog}
+```
+
+With a promise-based dialog manager, the gate is a one-liner:
 
 ```tsx
 <ReAgent
-  beforeAgentCall={async ({ session, prompt }) => {
-    if (await proxy.sessionStillValid()) {
-      return;
-    }
-    // Either await your own dialog here…
-    // await openReAuthDialog();
-    // …or hand the user a UI to click, rendered in the transcript:
-    return {
-      ok: false,
-      message: 'Your proxy session expired. Confirm it to send this message.',
-      ui: <ReAuthButton />,
-    };
-  }}
-/>;
+  beforeAgentCall={async () =>
+    (await host.ensureFreshSession()) ? undefined : { ok: false, message: 'Session expired.' }
+  }
+/>
 ```
 
-The block is rendered by `<ReAgentCallGateNotice />`, which the preset already
-places between the transcript and the composer. `ui` runs inside the provider,
-so it can call `useReAgent().send()` to retry; the input is still there, and the
-gate runs again. A gate that throws counts as a block, with the error message as
-the reason.
+### Inline host UI
 
-Headless layouts (`ReAgentProvider` + your own parts) read the same state from
-`useReAgent()`:
+When the fix does not deserve a modal, return `ui` instead: a `ReactNode`
+rendered in the transcript by `<ReAgentCallGateNotice />` (the preset already
+places it between the transcript and the composer, below the reason and next to
+a dismiss button).
+
+```tsx
+import { useReAgent } from '@liyu1981/reagent';
+
+function ReAuthPrompt() {
+  const { send, clearCallBlock } = useReAgent(); // works: rendered inside the provider
+  const [busy, setBusy] = useState(false);
+  return (
+    <div className="flex gap-2">
+      <button
+        type="button"
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          try {
+            await proxy.reauthenticate();
+            await send(); // retries the call; the gate runs again first
+          } finally {
+            setBusy(false);
+          }
+        }}
+      >
+        Sign in
+      </button>
+      <button type="button" onClick={clearCallBlock}>
+        Later
+      </button>
+    </div>
+  );
+}
+
+// in the gate:
+return { ok: false, message: 'Your proxy session expired.', ui: <ReAuthPrompt /> };
+```
+
+Things to keep in mind:
+
+- **`ui` is a snapshot.** It is a `ReactNode` held in provider state, so inline
+  closures keep the values from the render in which the gate ran. Pass a
+  component element (`<ReAuthPrompt />`) and let it own its hooks and state
+  instead of capturing changing values in the gate.
+- **Where it renders.** The notice lives inside `<ReAgentProvider>`, so
+  `useReAgent()` works in your UI, and your own React contexts work as long as
+  they are ancestors of `<ReAgent>`.
+- **Dismissing vs. retrying.** `clearCallBlock()` drops the notice without
+  sending; a successful `send()` clears it automatically. Editing the input does
+  not clear it, and the typed text plus attachments survive a block.
+- **Copy.** Override `agent.callBlocked` and `agent.dismiss` through the
+  `messages` (or `translate`) prop.
+- **No AbortSignal.** The gate gets none, so resolve your promise yourself if the
+  dialog can disappear another way — otherwise `gating` stays `true` and the
+  send button stays disabled.
+
+### Building your own layout
+
+Headless layouts (`ReAgentProvider` + the exported parts) read the same state
+from `useReAgent()` and can render the block anywhere:
 
 ```ts
 const { gating, callBlock, clearCallBlock } = useReAgent();
-// gating        — a gate is running; the send button should be disabled
-// callBlock     — { message?, ui? } of the last block, or null
+// gating         — a gate is running; disable the send button
+// callBlock      — { message?, ui? } of the last block, or null
 // clearCallBlock()
 ```
 
-Types: `ReAgentCallContext` (`session`, `model`, `prompt`, `attachmentCount`),
-`ReAgentCallDecision` and `ReAgentCallGate`. The gate runs once per send, not per
-model round-trip — tool-call continuations inside one turn are not gated.
+Types: `ReAgentCallContext`, `ReAgentCallDecision`, `ReAgentCallGate`,
+`ReAgentCallBlock`; the normalization helper is `resolveCallGate()`.
 
 ## Editor integration
 

@@ -68,6 +68,7 @@ Every part rendered inside the provider can call `useReAgent()`. If you use
 | `selection`, `selectionExpanded`, `toggleSelectionExpanded`, `clearSelection`, `draft` | Selection / draft state. |
 | `expandedToolCalls`, `toggleToolCall` | Tool-call disclosure state. |
 | `send`, `stop` | Run the agent / abort it. |
+| `gating`, `callBlock`, `clearCallBlock` | Host `beforeAgentCall` gate state: a check is running, why the last call was stopped (plus its host UI), and how to dismiss it. See [Gating agent calls](./host-integrations#gating-agent-calls). |
 | `view`, `setView`, `exaKeyPrompt`, `setExaKeyPrompt`, `saveExaKey` | Navigation & prompts. |
 | `toolLabels`, `tools` | Tool registry metadata. |
 | `t`, `language`, `theme`, `notify`, `renderMarkdown` | Host integrations passed down. |
