@@ -31,9 +31,11 @@ export {
   getModels,
   getOllamaBaseUrl,
   hasCredential,
+  isProviderEnabled,
   isVerified,
   listAvailableModels,
   listBuiltinCloudProviders,
+  listConfigurableProviders,
   pruneExpiredCredentials,
   rebuildModels,
   refreshModels,
@@ -42,6 +44,7 @@ export {
   setCustomCloudProviders,
   setKeyRetention,
   setOllamaBaseUrl,
+  setProviderEnabled,
   testConnection,
 } from './core/models';
 export * from './core/prompt';

@@ -3,11 +3,13 @@ import {
   clearApiKey,
   getCustomCloudProviders,
   hasCredential,
+  isProviderEnabled,
   isVerified,
   listBuiltinCloudProviders,
   removeCustomCloudProvider,
   saveApiKey,
   setCustomCloudProviders,
+  setProviderEnabled,
   subscribeAgentConfig,
   testConnection,
 } from '@liyu1981/reagent';
@@ -43,12 +45,19 @@ export function CloudProviderTestBench() {
 
   const enabled = new Set(getCustomCloudProviders().map(spec => spec.id));
 
+  // A spec alone is not enough: the provider may still be switched off in
+  // Settings → Model, so "enabled" also needs the provider's switch.
+  const isEnabled = (id: string) => enabled.has(id) && isProviderEnabled(id);
+
   function toggle(id: string) {
-    if (enabled.has(id)) {
+    if (isEnabled(id)) {
       removeCustomCloudProvider(id);
-    } else {
+      return;
+    }
+    if (!enabled.has(id)) {
       addCustomCloudProvider({ id });
     }
+    setProviderEnabled(id, true);
   }
 
   function enableAll() {
@@ -59,6 +68,9 @@ export function CloudProviderTestBench() {
       }
     }
     setCustomCloudProviders(specs);
+    for (const provider of BUILTIN_PROVIDERS) {
+      setProviderEnabled(provider.id, true);
+    }
   }
 
   function disableAll() {
@@ -135,7 +147,7 @@ export function CloudProviderTestBench() {
           const rowStatus = status[provider.id];
           const configured = hasCredential(provider.id);
           const verified = isVerified(provider.id);
-          const isEnabled = enabled.has(provider.id);
+          const isOn = isEnabled(provider.id);
           return (
             <div
               key={provider.id}
@@ -188,12 +200,12 @@ export function CloudProviderTestBench() {
                 onClick={() => toggle(provider.id)}
                 className={cn(
                   'w-20 rounded-lg border px-2 py-1 text-xs transition',
-                  isEnabled
+                  isOn
                     ? 'border-primary/40 bg-primary/10 text-primary'
                     : 'border-border text-muted-foreground hover:bg-accent hover:text-foreground',
                 )}
               >
-                {isEnabled ? 'Enabled' : 'Enable'}
+                {isOn ? 'Enabled' : 'Enable'}
               </button>
               {rowStatus !== undefined && (
                 <p

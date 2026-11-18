@@ -30,6 +30,8 @@ import { DEFAULT_OLLAMA_BASE_URL, OLLAMA_PROVIDER_ID } from './types';
 
 export { OLLAMA_PROVIDER_ID };
 
+const OLLAMA_PROVIDER_NAME = 'Custom Local LLM (OpenAI compatible)';
+
 function readJson<T>(key: string): T | undefined {
   try {
     const raw = localStorage.getItem(key);
@@ -373,11 +375,11 @@ function buildOllamaProvider(baseUrl: string) {
   const v1Url = `${baseUrl}/v1`;
   return createProvider({
     id: OLLAMA_PROVIDER_ID,
-    name: 'Custom Local LLM (OpenAI compatible)',
+    name: OLLAMA_PROVIDER_NAME,
     baseUrl: v1Url,
     auth: {
       apiKey: {
-        name: 'Custom Local LLM (OpenAI compatible)',
+        name: OLLAMA_PROVIDER_NAME,
         resolve: async () => ({ auth: { apiKey: 'local' } }),
       },
     },
@@ -504,6 +506,71 @@ export function removeCustomCloudProvider(
     current.filter(entry => entry.id !== id),
     prefix,
   );
+}
+
+/**
+ * Every provider the user can switch on or off — host-injected, browser-verified
+ * built-ins, custom endpoints and the local OpenAI-compatible one — whether or
+ * not it is currently registered. Disabled providers stay in the list so they
+ * can be switched back on without losing their spec or key.
+ */
+export function listConfigurableProviders(
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): Array<{ id: string; name: string }> {
+  const builtinNames = new Map(builtinProviders().map(provider => [provider.id, provider.name]));
+  const out: Array<{ id: string; name: string }> = [];
+  const seen = new Set<string>();
+  const add = (id: string, name?: string) => {
+    if (seen.has(id)) {
+      return;
+    }
+    seen.add(id);
+    const resolved = name?.trim() ?? '';
+    out.push({ id, name: resolved === '' ? (builtinNames.get(id) ?? id) : resolved });
+  };
+  for (const { descriptor } of activeHostProviders()) {
+    add(descriptor.id, descriptor.name);
+  }
+  for (const provider of builtinProviders()) {
+    if (BROWSER_SUPPORTED_PROVIDERS.has(provider.id)) {
+      add(provider.id, provider.name);
+    }
+  }
+  for (const spec of getAgentConfig(prefix).customProviders) {
+    if (spec.id !== OLLAMA_PROVIDER_ID) {
+      add(spec.id, spec.name);
+    }
+  }
+  add(OLLAMA_PROVIDER_ID, OLLAMA_PROVIDER_NAME);
+  // Ids still switched off after their spec disappeared (removed custom
+  // provider, provider no longer injected by the host).
+  for (const id of getAgentConfig(prefix).providersDisabled) {
+    add(id);
+  }
+  return out;
+}
+
+/** Whether a provider is switched on (i.e. it is registered when available). */
+export function isProviderEnabled(
+  providerId: string,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): boolean {
+  return !getAgentConfig(prefix).providersDisabled.includes(providerId);
+}
+
+/**
+ * Switch a provider on or off and rebuild the registry. Switching off only
+ * unregisters it — its spec and stored API key are kept.
+ */
+export function setProviderEnabled(
+  providerId: string,
+  enabled: boolean,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): void {
+  const current = getAgentConfig(prefix).providersDisabled;
+  const others = current.filter(id => id !== providerId);
+  updateAgentConfig({ providersDisabled: enabled ? others : [...others, providerId] }, prefix);
+  rebuildModels(prefix);
 }
 
 /**
@@ -668,31 +735,42 @@ function withLiveModels(provider: Provider<Api>): Provider<Api> {
 
 function buildModels(prefix: string): MutableModels {
   const models = createModels({ credentials: credentialStore(prefix) });
+  const config = getAgentConfig(prefix);
+  const disabled = new Set(config.providersDisabled);
   // Host-injected providers first, then browser-verified built-ins, then the
   // custom providers, then our keyless OpenAI-compatible endpoint.
   const registered = new Set<string>();
-  for (const { descriptor, config } of activeHostProviders()) {
-    models.setProvider(buildHostProvider(descriptor, config));
-    registered.add(descriptor.id);
+  // Claim an id for this source so later sources cannot shadow it, and report
+  // whether it should actually be registered (i.e. not switched off).
+  const claim = (id: string): boolean => {
+    if (registered.has(id)) {
+      return false;
+    }
+    registered.add(id);
+    return !disabled.has(id);
+  };
+  for (const { descriptor, config: hostConfig } of activeHostProviders()) {
+    if (claim(descriptor.id)) {
+      models.setProvider(buildHostProvider(descriptor, hostConfig));
+    }
   }
   for (const provider of builtinProviders()) {
-    if (!BROWSER_SUPPORTED_PROVIDERS.has(provider.id) || registered.has(provider.id)) {
-      continue;
+    if (BROWSER_SUPPORTED_PROVIDERS.has(provider.id) && claim(provider.id)) {
+      models.setProvider(withLiveModels(provider));
     }
-    models.setProvider(withLiveModels(provider));
-    registered.add(provider.id);
   }
-  for (const spec of getAgentConfig(prefix).customProviders) {
-    if (spec.id === OLLAMA_PROVIDER_ID || registered.has(spec.id)) {
+  for (const spec of config.customProviders) {
+    if (spec.id === OLLAMA_PROVIDER_ID || !claim(spec.id)) {
       continue;
     }
     const provider = buildCustomProvider(spec);
     if (provider !== null) {
       models.setProvider(withLiveModels(provider));
-      registered.add(spec.id);
     }
   }
-  models.setProvider(buildOllamaProvider(getOllamaBaseUrl(prefix)));
+  if (claim(OLLAMA_PROVIDER_ID)) {
+    models.setProvider(buildOllamaProvider(getOllamaBaseUrl(prefix)));
+  }
   return models;
 }
 

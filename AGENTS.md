@@ -98,6 +98,9 @@ site/                   Vite demo + documentation site (GitHub Pages)
   `baseUrl` defines a new OpenAI/Anthropic-compatible endpoint; both are
   persisted in `config.customProviders` and registered by `buildModels`. The
   docs site's browser-support page has a provider test bench on top of it.
+  **`config.providersDisabled`** (Settings → Model switches,
+  `setProviderEnabled`) is the mirror-image deny-list: `buildModels` skips a
+  disabled id entirely, keeping its spec and key so it can come back.
 - **Defaults are intentionally empty.** A bare `<ReAgent />` has **no tools, no
   skills and no MCP servers**, and a generic system prompt:
   - `tools.ts` — `EDITOR_TOOLS` are built *and listed* only when an

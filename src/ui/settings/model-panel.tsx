@@ -1,6 +1,6 @@
 import { Check, ChevronsUpDown, KeyRound, Loader2, RefreshCw, X } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { useReAgent } from '../../core/hooks';
+import { useReAgent, useReAgentConfig } from '../../core/hooks';
 import { useToast, useTranslation } from '../../core/i18n';
 import {
   clearApiKey,
@@ -9,10 +9,12 @@ import {
   getOllamaBaseUrl,
   hasCredential,
   isVerified,
+  listConfigurableProviders,
   OLLAMA_PROVIDER_ID,
   refreshModels,
   saveApiKey,
   setOllamaBaseUrl,
+  setProviderEnabled,
   subscribeModels,
   testConnection,
 } from '../../core/models';
@@ -22,6 +24,7 @@ import { Button } from '../../primitives/button';
 import { Input } from '../../primitives/input';
 import { Label } from '../../primitives/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../../primitives/popover';
+import { Switch } from '../../primitives/switch';
 
 interface ProviderOption {
   id: string;
@@ -127,6 +130,7 @@ export function ReAgentModelPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const { storagePrefix, hostProviders } = useReAgent();
+  const { config } = useReAgentConfig();
   // Recompute when the registry changes (custom providers added/removed, the
   // Ollama base URL changed, …).
   const modelsVersion = useSyncExternalStore(
@@ -146,6 +150,16 @@ export function ReAgentModelPanel() {
   const cloudProviders = useMemo(
     () => providers.filter(provider => provider.id !== OLLAMA_PROVIDER_ID),
     [providers],
+  );
+  const disabledProviders = useMemo(
+    () => new Set(config.providersDisabled),
+    [config.providersDisabled],
+  );
+  // Every provider the user can switch, including the ones currently off (they
+  // are not in the registry, so they would otherwise vanish from the panel).
+  const configurableProviders = useMemo(
+    () => listConfigurableProviders(storagePrefix),
+    [storagePrefix, modelsVersion, config.providersDisabled, config.customProviders],
   );
 
   const [selectedProvider, setSelectedProvider] = useState(
@@ -170,6 +184,13 @@ export function ReAgentModelPanel() {
     setConfigured(saved);
     setVerified(proven);
   }, [providers]);
+
+  // Switching a provider off removes it from the combobox — fall back to another.
+  useEffect(() => {
+    if (!cloudProviders.some(provider => provider.id === selectedProvider)) {
+      setSelectedProvider(cloudProviders[0]?.id ?? '');
+    }
+  }, [cloudProviders, selectedProvider]);
 
   async function handleSaveKey(providerId: string) {
     const key = (keys[providerId] ?? '').trim();
@@ -232,70 +253,103 @@ export function ReAgentModelPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Host-injected providers render their own setup UI here. */}
-      {hostProviders.map(provider => {
-        const HostComponent = provider.component;
-        return (
-          <section key={provider.id} className="space-y-2">
-            <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-              {provider.name}
-            </p>
-            <HostComponent config={provider.config} setConfig={provider.setConfig} />
-          </section>
-        );
-      })}
-
-      {/* Custom / local OpenAI-compatible endpoint */}
+      {/* Which providers are registered at all — and so offered in the picker. */}
       <section className="space-y-2">
         <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {t('agent.customLocalLlm')}
+          {t('agent.providers')}
         </p>
-        <div className="space-y-1.5 rounded-xl border border-border/50 p-3">
-          <div className="flex gap-1.5">
-            <Input
-              value={ollamaUrl}
-              onChange={event => setOllamaUrl(event.target.value)}
-              placeholder="http://localhost:11434"
-              className="h-8 flex-1"
-            />
-            <Button variant="outline" size="sm" onClick={handleSaveOllama}>
-              {t('agent.save')}
-            </Button>
-          </div>
-          <p className="text-xs text-muted-foreground">{t('agent.ollamaBaseUrlHint')}</p>
-          <div className="flex gap-1.5">
-            <Input
-              type="password"
-              value={keys[OLLAMA_PROVIDER_ID] ?? ''}
-              onChange={event =>
-                setKeys(prev => ({ ...prev, [OLLAMA_PROVIDER_ID]: event.target.value }))
-              }
-              placeholder={t('agent.ollamaKeyPlaceholder')}
-              className="h-8 min-w-32 flex-1"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void handleSaveKey(OLLAMA_PROVIDER_ID)}
-              disabled={(keys[OLLAMA_PROVIDER_ID] ?? '').trim() === ''}
-            >
-              {t('agent.saveKey')}
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void handleTest(OLLAMA_PROVIDER_ID)}
-              disabled={testing[OLLAMA_PROVIDER_ID]}
-            >
-              {testing[OLLAMA_PROVIDER_ID] ? <Loader2 className="animate-spin" /> : <Check />}
-              {t('agent.testConnection')}
-            </Button>
-          </div>
-          {status[OLLAMA_PROVIDER_ID] !== undefined && (
-            <StatusMessage status={status[OLLAMA_PROVIDER_ID]} />
-          )}
+        <div className="space-y-1 rounded-xl border border-border/50 p-3">
+          {configurableProviders.map(provider => (
+            <div key={provider.id} className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{provider.name}</p>
+                <p className="truncate text-xs text-muted-foreground">{provider.id}</p>
+              </div>
+              {verified[provider.id] && !disabledProviders.has(provider.id) && (
+                <Badge variant="outline" className="gap-1">
+                  <Check className="size-3" />
+                  {t('agent.verified')}
+                </Badge>
+              )}
+              <Switch
+                checked={!disabledProviders.has(provider.id)}
+                onCheckedChange={enabled => setProviderEnabled(provider.id, enabled, storagePrefix)}
+                aria-label={provider.name}
+              />
+            </div>
+          ))}
         </div>
+        <p className="text-xs text-muted-foreground">{t('agent.providersDisabledHint')}</p>
       </section>
+
+      {/* Host-injected providers render their own setup UI here. */}
+      {hostProviders
+        .filter(provider => !disabledProviders.has(provider.id))
+        .map(provider => {
+          const HostComponent = provider.component;
+          return (
+            <section key={provider.id} className="space-y-2">
+              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                {provider.name}
+              </p>
+              <HostComponent config={provider.config} setConfig={provider.setConfig} />
+            </section>
+          );
+        })}
+
+      {/* Custom / local OpenAI-compatible endpoint */}
+      {!disabledProviders.has(OLLAMA_PROVIDER_ID) && (
+        <section className="space-y-2">
+          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
+            {t('agent.customLocalLlm')}
+          </p>
+          <div className="space-y-1.5 rounded-xl border border-border/50 p-3">
+            <div className="flex gap-1.5">
+              <Input
+                value={ollamaUrl}
+                onChange={event => setOllamaUrl(event.target.value)}
+                placeholder="http://localhost:11434"
+                className="h-8 flex-1"
+              />
+              <Button variant="outline" size="sm" onClick={handleSaveOllama}>
+                {t('agent.save')}
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">{t('agent.ollamaBaseUrlHint')}</p>
+            <div className="flex gap-1.5">
+              <Input
+                type="password"
+                value={keys[OLLAMA_PROVIDER_ID] ?? ''}
+                onChange={event =>
+                  setKeys(prev => ({ ...prev, [OLLAMA_PROVIDER_ID]: event.target.value }))
+                }
+                placeholder={t('agent.ollamaKeyPlaceholder')}
+                className="h-8 min-w-32 flex-1"
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleSaveKey(OLLAMA_PROVIDER_ID)}
+                disabled={(keys[OLLAMA_PROVIDER_ID] ?? '').trim() === ''}
+              >
+                {t('agent.saveKey')}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => void handleTest(OLLAMA_PROVIDER_ID)}
+                disabled={testing[OLLAMA_PROVIDER_ID]}
+              >
+                {testing[OLLAMA_PROVIDER_ID] ? <Loader2 className="animate-spin" /> : <Check />}
+                {t('agent.testConnection')}
+              </Button>
+            </div>
+            {status[OLLAMA_PROVIDER_ID] !== undefined && (
+              <StatusMessage status={status[OLLAMA_PROVIDER_ID]} />
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Cloud providers */}
       <section className="space-y-2">

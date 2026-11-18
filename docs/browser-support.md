@@ -95,16 +95,19 @@ paste a key, hit **Test**, and the result tells you whether the browser may
 talk to it. A successful test marks the provider verified and its models show
 up in **Settings → Model** of the demos.
 
-- **Enable all** / **Disable all** toggle the whole built-in set at once.
+- **Enable all** / **Disable all** toggle the whole built-in set at once. The
+  bench also respects the per-provider switches in
+  [Settings → Model](./models#switching-providers-off), and re-enables a
+  provider it finds switched off.
 - Keys saved here follow **Settings → General → API key retention** in any
   ReAgent on the same storage prefix.
 
 ## What still works
 
-The **Custom Local LLM** provider is always available — point ReAgent at any
-OpenAI-compatible server the browser can reach: Ollama on
-`http://localhost:11434`, LM Studio, vLLM, … See
-[Models & providers](./models).
+The **Custom Local LLM** provider is registered by default (switch it off in
+Settings → Model if you do not use it) — point ReAgent at any OpenAI-compatible
+server the browser can reach: Ollama on `http://localhost:11434`, LM Studio,
+vLLM, … See [Models & providers](./models).
 
 ## Making more providers work
 

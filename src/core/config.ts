@@ -30,6 +30,7 @@ export function defaultAgentConfig(): AgentConfig {
     providers: { ollama: { baseUrl: DEFAULT_OLLAMA_BASE_URL } },
     keyRetentionMs: DEFAULT_KEY_RETENTION_MS,
     customProviders: [],
+    providersDisabled: [],
     systemPrompt: { mode: 'default', custom: '' },
     skills: [],
     skillsDisabledBuiltins: [],
@@ -140,6 +141,9 @@ function normalize(raw: Partial<AgentConfig> | undefined): AgentConfig {
           ? raw.keyRetentionMs
           : base.keyRetentionMs,
     customProviders: normalizeCustomProviders(raw.customProviders),
+    providersDisabled: Array.isArray(raw.providersDisabled)
+      ? [...new Set(raw.providersDisabled.filter((id): id is string => typeof id === 'string'))]
+      : [],
     systemPrompt: {
       mode: raw.systemPrompt?.mode === 'custom' ? 'custom' : 'default',
       custom: typeof raw.systemPrompt?.custom === 'string' ? raw.systemPrompt.custom : '',

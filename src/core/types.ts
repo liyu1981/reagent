@@ -76,6 +76,12 @@ export interface AgentConfig {
   keyRetentionMs: number | null;
   /** Extra cloud providers registered into the model registry. */
   customProviders: ReAgentCloudProviderSpec[];
+  /**
+   * Providers switched off in Settings → Model. A disabled provider is not
+   * registered at all, so it disappears from the model picker; its spec and
+   * stored key are kept, so switching it back on needs no re-entry.
+   */
+  providersDisabled: string[];
   systemPrompt: AgentSystemPromptConfig;
   skills: AgentSkillConfig[];
   skillsDisabledBuiltins: string[];

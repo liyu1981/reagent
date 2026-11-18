@@ -107,6 +107,9 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
     'Used for the local OpenAI-compatible provider. Set to your Ollama server, e.g. http://localhost:11434.',
   'agent.ollamaKeyPlaceholder': 'No key required',
   'agent.ollamaSaved': 'Ollama base URL saved.',
+  'agent.providers': 'Providers',
+  'agent.providersDisabledHint':
+    'Switch a provider off to remove it from the model picker. Its API key is kept, so switching it back on needs no re-entry.',
   'agent.refresh': 'Refresh',
   'agent.refreshModels': 'Refresh available models',
   'agent.removeAttachment': 'Remove attachment',
