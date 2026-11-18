@@ -125,6 +125,55 @@ Wire `notify` into your toast system:
 <ReAgent notify={(message, level) => toast[level ?? 'success'](message)} />
 ```
 
+## Gating agent calls
+
+`beforeAgentCall` runs **before every agent call** (every send) and may be
+async. It is the place for host checks that should not interrupt the
+conversation: refreshing a proxy session, re-confirming auth every few minutes,
+topping up credits. Return nothing (or `true`, or `{ ok: true }`) to let the call
+through; return `false` or `{ ok: false, message, ui }` to stop it. While the gate
+runs — and when it blocks — the user's input, attachments and transcript are
+untouched: nothing is sent to the model, nothing is appended to the
+conversation.
+
+```tsx
+<ReAgent
+  beforeAgentCall={async ({ session, prompt }) => {
+    if (await proxy.sessionStillValid()) {
+      return;
+    }
+    // Either await your own dialog here…
+    // await openReAuthDialog();
+    // …or hand the user a UI to click, rendered in the transcript:
+    return {
+      ok: false,
+      message: 'Your proxy session expired. Confirm it to send this message.',
+      ui: <ReAuthButton />,
+    };
+  }}
+/>;
+```
+
+The block is rendered by `<ReAgentCallGateNotice />`, which the preset already
+places between the transcript and the composer. `ui` runs inside the provider,
+so it can call `useReAgent().send()` to retry; the input is still there, and the
+gate runs again. A gate that throws counts as a block, with the error message as
+the reason.
+
+Headless layouts (`ReAgentProvider` + your own parts) read the same state from
+`useReAgent()`:
+
+```ts
+const { gating, callBlock, clearCallBlock } = useReAgent();
+// gating        — a gate is running; the send button should be disabled
+// callBlock     — { message?, ui? } of the last block, or null
+// clearCallBlock()
+```
+
+Types: `ReAgentCallContext` (`session`, `model`, `prompt`, `attachmentCount`),
+`ReAgentCallDecision` and `ReAgentCallGate`. The gate runs once per send, not per
+model round-trip — tool-call continuations inside one turn are not gated.
+
 ## Editor integration
 
 If the agent should edit a document the user has open, implement

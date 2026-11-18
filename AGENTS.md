@@ -123,10 +123,13 @@ site/                   Vite demo + documentation site (GitHub Pages)
 
 Everything app-specific is optional and lives on `<ReAgent>` /
 `<ReAgentProvider>`: `renderMarkdown`, `uploadFile`, `notify`,
-`messages`/`translate`, `extraTools`, `extraDescriptors`, `draft`, `editor`,
-`selection`, `theme`, `language`, `surface`. See `docs/host-integrations.md`.
-`EditorMutationBridge` is the seam for hosts that let the agent edit an open
-document; without it there is no editor UI and no editor tools.
+`messages`/`translate`, `extraTools`, `extraDescriptors`, `beforeAgentCall`,
+`draft`, `editor`, `selection`, `theme`, `language`, `surface`. See
+`docs/host-integrations.md`. `EditorMutationBridge` is the seam for hosts that
+let the agent edit an open document; without it there is no editor UI and no
+editor tools. `beforeAgentCall` (`core/call-gate.ts`) is the pre-send gate: an
+async check that may stop a call with a message and host UI
+(`ReAgentCallGateNotice`), leaving input and transcript untouched.
 
 ## Styling
 

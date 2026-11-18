@@ -1,6 +1,7 @@
 import type { AgentTool } from '@earendil-works/pi-agent-core';
 import { cva } from 'class-variance-authority';
 import { useState } from 'react';
+import type { ReAgentCallGate } from '../core/call-gate';
 import type { EditorMutationBridge } from '../core/editor-mutations';
 import { useReAgent } from '../core/hooks';
 import type { ReAgentHostProvider } from '../core/host-providers';
@@ -25,6 +26,7 @@ import {
   DialogTitle,
 } from '../primitives/dialog';
 import { Input } from '../primitives/input';
+import { ReAgentCallGateNotice } from './reagent-call-gate';
 import {
   ReAgentComposer,
   ReAgentComposerAttach,
@@ -80,6 +82,8 @@ export interface ReAgentProps {
   storagePrefix?: string;
   /** Host-injected LLM providers (own setup UI; config kept in memory only). */
   hostProviders?: ReAgentHostProvider[];
+  /** Runs before each agent call; block it with `{ ok: false, message, ui }`. */
+  beforeAgentCall?: ReAgentCallGate;
 }
 
 export type ReAgentSurface = 'glass' | 'solid';
@@ -123,6 +127,7 @@ export function ReAgent({
   extraDescriptors,
   storagePrefix,
   hostProviders,
+  beforeAgentCall,
 }: ReAgentProps) {
   return (
     <ReAgentProvider
@@ -142,6 +147,7 @@ export function ReAgent({
       extraDescriptors={extraDescriptors}
       storagePrefix={storagePrefix}
       hostProviders={hostProviders}
+      beforeAgentCall={beforeAgentCall}
     >
       <ReAgentChrome onClose={onClose} surface={surface} className={className} />
     </ReAgentProvider>
@@ -177,6 +183,8 @@ function ReAgentChrome({
             </ReAgentHeader>
 
             <ReAgentMessageList />
+
+            <ReAgentCallGateNotice />
 
             <footer className="p-2">
               <ReAgentComposer>

@@ -249,8 +249,8 @@ export function ReAgentComposerAttach({ className, ...props }: ComponentProps<'d
 }
 
 export function ReAgentComposerStatus({ className, ...props }: ComponentProps<'div'>) {
-  const { status } = useReAgent();
-  if (status !== 'streaming') {
+  const { status, gating } = useReAgent();
+  if (status !== 'streaming' && !gating) {
     return null;
   }
   return (
@@ -457,7 +457,7 @@ export function ReAgentModelPicker({ className, ...props }: ComponentProps<typeo
 }
 
 export function ReAgentSendButton({ className, ...props }: ComponentProps<typeof Button>) {
-  const { status, stop, send, input, attachments, models, uploading } = useReAgent();
+  const { status, stop, send, input, attachments, models, uploading, gating } = useReAgent();
   const { t } = useTranslation();
   if (status === 'streaming') {
     return (
@@ -483,7 +483,10 @@ export function ReAgentSendButton({ className, ...props }: ComponentProps<typeof
       className={cn('rounded-full', className)}
       onClick={() => void send()}
       disabled={
-        (input.trim() === '' && attachments.length === 0) || models.length === 0 || uploading
+        (input.trim() === '' && attachments.length === 0) ||
+        models.length === 0 ||
+        uploading ||
+        gating
       }
       {...props}
     >

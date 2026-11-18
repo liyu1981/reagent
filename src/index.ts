@@ -2,6 +2,7 @@ import './core/polyfills';
 
 export * from './core/agent';
 export * from './core/attachments';
+export * from './core/call-gate';
 export * from './core/config';
 export * from './core/editor-mutations';
 export * from './core/file-store';
@@ -57,6 +58,7 @@ export * from './core/types';
 export * from './core/webmcp';
 
 export * from './ui/reagent';
+export * from './ui/reagent-call-gate';
 export * from './ui/reagent-composer';
 export * from './ui/reagent-file-attachment';
 export * from './ui/reagent-file-browser';

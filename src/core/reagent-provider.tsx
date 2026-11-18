@@ -21,6 +21,7 @@ import {
   makeVisionImage,
   setMessageFiles,
 } from './attachments';
+import { type ReAgentCallBlock, type ReAgentCallGate, resolveCallGate } from './call-gate';
 import {
   getAgentConfig,
   subscribeAgentConfig,
@@ -130,6 +131,11 @@ export interface ReAgentContextValue {
 
   send: () => Promise<void>;
   stop: () => void;
+  /** A host `beforeAgentCall` gate is running; sending is paused. */
+  gating: boolean;
+  /** Why the last call was stopped, plus the host UI to resolve it. */
+  callBlock: ReAgentCallBlock | null;
+  clearCallBlock: () => void;
 
   view: ReAgentView;
   setView: (view: ReAgentView) => void;
@@ -215,6 +221,13 @@ export interface ReAgentProviderProps {
   storagePrefix?: string;
   /** Host-injected LLM providers (own setup UI; config kept in memory only). */
   hostProviders?: ReAgentHostProvider[];
+  /**
+   * Runs before each agent call (each send). Return nothing/`true`/`{ ok: true }`
+   * to continue, or `false`/`{ ok: false, message?, ui? }` to stop the call and
+   * explain why — the input is kept, nothing is appended to the conversation.
+   * It may await host UI (e.g. a re-auth prompt). See `ReAgentCallGate`.
+   */
+  beforeAgentCall?: ReAgentCallGate;
   children: ReactNode;
 }
 
@@ -235,6 +248,7 @@ export function ReAgentProvider({
   files,
   storagePrefix,
   hostProviders,
+  beforeAgentCall,
   children,
 }: ReAgentProviderProps) {
   const t = useMemo(() => translate ?? makeTranslator(messages), [translate, messages]);
@@ -253,6 +267,8 @@ export function ReAgentProvider({
 
   const [sessions, setSessions] = useState<AgentSession[]>([]);
   const [streaming, setStreaming] = useState(false);
+  const [gating, setGating] = useState(false);
+  const [callBlock, setCallBlock] = useState<ReAgentCallBlock | null>(null);
   const [streamingText, setStreamingText] = useState('');
   const [streamingThinking, setStreamingThinking] = useState('');
   const [isThinking, setIsThinking] = useState(false);
@@ -286,11 +302,13 @@ export function ReAgentProvider({
   const sessionsReadyRef = useRef(false);
   const lastClampedRef = useRef<string | null>(null);
   const selectionRef = useRef(selection);
+  const callGateRef = useRef(beforeAgentCall);
   const creatingSessionRef = useRef(false);
 
   configRef.current = config;
   extraToolsRef.current = extraTools;
   extraDescriptorsRef.current = extraDescriptors;
+  callGateRef.current = beforeAgentCall;
   sessionsRef.current = sessions;
 
   useEffect(() => {
@@ -870,9 +888,46 @@ export function ReAgentProvider({
 
   const handleSend = useCallback(async () => {
     const text = input.trim();
-    if ((text === '' && attachments.length === 0) || streaming) {
+    if ((text === '' && attachments.length === 0) || streaming || gating) {
       return;
     }
+    const sentAttachments = attachments;
+    const sentFiles = sentAttachments.flatMap(attachment =>
+      attachment.file === undefined ? [] : [attachment.file],
+    );
+    const prompt =
+      selection !== null && selection !== undefined && selection.trim() !== ''
+        ? `Revise the following selection.\n\n\`\`\`markdown\n${selection}\n\`\`\`\n\nInstruction: ${text}`
+        : text;
+    const promptText = prompt === '' && sentFiles.length > 0 ? t('agent.filesOnlyPrompt') : prompt;
+
+    // Host gate: everything still belongs to the user here — the input, the
+    // attachments and the transcript — so a blocked call can simply be retried.
+    const gate = callGateRef.current;
+    if (gate !== undefined) {
+      const current = latestRef.current;
+      const planned =
+        current !== null
+          ? { providerId: current.providerId, modelId: current.modelId }
+          : defaultModel();
+      setGating(true);
+      let block: ReAgentCallBlock | null;
+      try {
+        block = await resolveCallGate(gate, {
+          session: current,
+          model: planned ?? null,
+          prompt: promptText,
+          attachmentCount: sentAttachments.length,
+        });
+      } finally {
+        setGating(false);
+      }
+      if (block !== null) {
+        setCallBlock(block);
+        return;
+      }
+    }
+
     let sessionNow = latestRef.current;
     if (sessionNow === null) {
       const created = await createSession();
@@ -886,10 +941,7 @@ export function ReAgentProvider({
       return;
     }
     latestRef.current = sessionNow;
-    const sentAttachments = attachments;
-    const sentFiles = sentAttachments.flatMap(attachment =>
-      attachment.file === undefined ? [] : [attachment.file],
-    );
+    setCallBlock(null);
     const filesystemToolsActive = (extraDescriptorsRef.current ?? []).some(
       descriptor =>
         descriptor.group === 'filesystem' &&
@@ -911,11 +963,6 @@ export function ReAgentProvider({
     if (head !== undefined && head.role === 'system') {
       instance.state.messages = [{ ...head, content: nextPrompt }, ...rest];
     }
-    const prompt =
-      selection !== null && selection !== undefined && selection.trim() !== ''
-        ? `Revise the following selection.\n\n\`\`\`markdown\n${selection}\n\`\`\`\n\nInstruction: ${text}`
-        : text;
-    const promptText = prompt === '' && sentFiles.length > 0 ? t('agent.filesOnlyPrompt') : prompt;
     const images: ImageContent[] = sentAttachments.flatMap(attachment =>
       attachment.data === undefined || attachment.data === ''
         ? []
@@ -954,6 +1001,8 @@ export function ReAgentProvider({
     buildSystemPrompt,
     createSession,
     currentBasePrompt,
+    defaultModel,
+    gating,
     input,
     persistSession,
     selection,
@@ -964,6 +1013,8 @@ export function ReAgentProvider({
   const stop = useCallback(() => {
     agentRef.current?.abort();
   }, []);
+
+  const clearCallBlock = useCallback(() => setCallBlock(null), []);
 
   const insertReference = useCallback((markdown: string) => {
     setInput(prev =>
@@ -1164,6 +1215,9 @@ export function ReAgentProvider({
     toggleToolCall,
     send: handleSend,
     stop,
+    gating,
+    callBlock,
+    clearCallBlock,
     view,
     setView,
     exaKeyPrompt,

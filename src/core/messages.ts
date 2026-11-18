@@ -18,6 +18,7 @@ export type ReAgentTheme = 'light' | 'dark';
 export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.active': 'Active',
   'agent.apiKeyPlaceholder': 'Enter API key…',
+  'agent.callBlocked': 'This message was not sent.',
   'agent.chatPlaceholder': 'Ask the agent…',
   'agent.cancel': 'Cancel',
   'agent.clearKey': 'Clear key',
@@ -40,6 +41,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.customPromptSaved': 'System prompt saved.',
   'agent.customPromptTitle': 'System prompt',
   'agent.deleteChat': 'Delete conversation',
+  'agent.dismiss': 'Dismiss',
   'agent.errorPrefix': 'Agent error:',
   'agent.exaKeyDescription':
     'Exa rejected the request. Add an API key to keep using web search — you can also set it later in Settings → Agent.',

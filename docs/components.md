@@ -53,6 +53,7 @@ required visual style of their own.
 | `ReAgentRoot` | Layout container. |
 | `ReAgentHeader` + `ReAgentSessionTreeTrigger`, `ReAgentNewSessionButton`, `ReAgentSettingsTrigger`, `ReAgentCloseButton`, `ReAgentForkButton`, `ReAgentSessionTitle` | Header controls. |
 | `ReAgentMessageList` | Scrollable transcript. |
+| `ReAgentCallGateNotice` | Where a host `beforeAgentCall` gate explains a stopped call (renders nothing otherwise). |
 | `ReAgentMessage`, `ReAgentToolCall`, `ReAgentToolChip`, `messageText` | Message rendering primitives. |
 | `ReAgentFileAttachment`, `ReAgentFilePreviewProvider`, `ReAgentFilePreviewPanel` | Stored-file card and the contained preview/download surface. The preset wraps its root in the provider automatically. |
 | `ReAgentComposer` + `ReAgentComposerInput`, `ReAgentComposerRow`, `ReAgentComposerAttach`, `ReAgentComposerAttachments`, `ReAgentComposerSelectionChip`, `ReAgentComposerStatus`, `ReAgentContextMeter`, `ReAgentModelPicker`, `ReAgentThinkingPicker`, `ReAgentSendButton` | The composer and its controls. |
