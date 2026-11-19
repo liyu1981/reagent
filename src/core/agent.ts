@@ -26,7 +26,7 @@ export interface AgentBuildOptions {
   messages?: AgentMessage[];
   sessionId?: string;
   editor?: EditorMutationBridge;
-  /** Origin-private filesystem root override for filesystem tools; defaults to the browser's OPFS root. */
+  /** Origin-private filesystem root override for artifact tools; defaults to the browser's OPFS root. */
   opfs?: FileSystemDirectoryHandle | null;
   /** Extra tools (e.g. MCP) merged into the built-in editor tools. */
   extraTools?: AgentTool<any>[];

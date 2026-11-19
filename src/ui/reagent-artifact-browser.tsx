@@ -8,15 +8,15 @@ import { getOpfsStats, listOpfsEntries, type OpfsEntry, type OpfsStats } from '.
 import { ReAgentFileAttachment } from './reagent-file-attachment';
 
 /**
- * Full-surface browser over the installed filesystem namespace. Opened from
- * the general settings "Browse files" action; replaces the chat surface while
- * the view is `filesystem`.
+ * Full-surface browser over the installed artifact namespace. Opened from the
+ * general settings "Browse artifacts" action; replaces the chat surface while
+ * the view is `artifacts`.
  */
-export function ReAgentFileBrowser() {
-  const { filesystem, setView } = useReAgent();
+export function ReAgentArtifactBrowser() {
+  const { artifacts, setView } = useReAgent();
   const { t } = useTranslation();
-  const namespace = filesystem?.namespace ?? '';
-  const opfs = filesystem?.opfs ?? null;
+  const namespace = artifacts?.namespace ?? '';
+  const opfs = artifacts?.opfs ?? null;
   const [path, setPath] = useState<string[]>([]);
   const [entries, setEntries] = useState<OpfsEntry[]>([]);
   const [stats, setStats] = useState<OpfsStats | null>(null);
@@ -116,7 +116,9 @@ export function ReAgentFileBrowser() {
         )}
       </div>
       <footer className="border-t border-border/60 px-3 py-2 text-xs text-muted-foreground">
-        {stats === null ? null : t('agent.fsStats', { files: stats.files, bytes: stats.bytes })}
+        {stats === null
+          ? null
+          : t('agent.artifactsStats', { files: stats.files, bytes: stats.bytes })}
       </footer>
     </div>
   );

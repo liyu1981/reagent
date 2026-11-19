@@ -1,5 +1,5 @@
 import { guessMimeType } from './attachments';
-import { getFileSystemTools, getOpfsRoot } from './tools';
+import { getArtifactTools, getOpfsRoot } from './tools';
 import type { AgentToolDescriptor, ReAgentFileRef, ReAgentFileStore } from './types';
 
 export interface OpfsFileStoreOptions {
@@ -55,7 +55,7 @@ async function resolveDir(
 
 /**
  * Store conversation attachments under `<opfs>/<namespace>/<folder>/`. The
- * returned refs carry a relative `path` so the built-in filesystem tools can
+ * returned refs carry a relative `path` so the built-in artifact tools can
  * read the same files.
  */
 export function createOpfsFileStore(
@@ -121,13 +121,13 @@ export function createOpfsFileStore(
   };
 }
 
-/** OPFS attachments plus the matching filesystem tool descriptors. */
+/** OPFS attachments plus the matching artifact tool descriptors. */
 export function createOpfsFiles(
   namespace: string,
   options: OpfsFileStoreOptions = {},
 ): { store: ReAgentFileStore; descriptors: AgentToolDescriptor[] } {
   return {
     store: createOpfsFileStore(namespace, options),
-    descriptors: getFileSystemTools(namespace),
+    descriptors: getArtifactTools(namespace),
   };
 }

@@ -71,6 +71,7 @@ Every part rendered inside the provider can call `useReAgent()`. If you use
 | `gating`, `callBlock`, `clearCallBlock` | Host `beforeAgentCall` gate state: a check is running, why the last call was stopped (plus its host UI), and how to dismiss it. See [Gating agent calls](./host-integrations#gating-agent-calls). |
 | `view`, `setView`, `exaKeyPrompt`, `setExaKeyPrompt`, `saveExaKey` | Navigation & prompts. |
 | `toolLabels`, `tools` | Tool registry metadata. |
+| `artifacts` | The installed artifact tools plus their namespace and OPFS root, or `null` when `getArtifactTools` was not passed. |
 | `t`, `language`, `theme`, `notify`, `renderMarkdown` | Host integrations passed down. |
 
 ## Config without the provider

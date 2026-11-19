@@ -26,6 +26,7 @@ import {
   DialogTitle,
 } from '../primitives/dialog';
 import { Input } from '../primitives/input';
+import { ReAgentArtifactBrowser } from './reagent-artifact-browser';
 import { ReAgentCallGateNotice } from './reagent-call-gate';
 import {
   ReAgentComposer,
@@ -41,7 +42,6 @@ import {
   ReAgentThinkingPicker,
 } from './reagent-composer';
 import { ReAgentFilePreviewProvider } from './reagent-file-attachment';
-import { ReAgentFileBrowser } from './reagent-file-browser';
 import {
   ReAgentCloseButton,
   ReAgentHeader,
@@ -167,8 +167,8 @@ function ReAgentChrome({
   return (
     <ReAgentRoot data-surface={surface} className={cn(surfaceVariants({ surface }), className)}>
       <ReAgentFilePreviewProvider>
-        {view === 'filesystem' ? (
-          <ReAgentFileBrowser />
+        {view === 'artifacts' ? (
+          <ReAgentArtifactBrowser />
         ) : view === 'settings' ? (
           <ReAgentSettingsView />
         ) : view === 'sessions' ? (

@@ -75,7 +75,7 @@ import { createOpfsFileStore } from '@liyu1981/reagent';
 ```
 
 ReAgent ships an OPFS-backed store so files never leave the browser. Pair it
-with the filesystem tools to let the model read text files:
+with the artifact tools to let the model read text files:
 
 ```tsx
 import { createOpfsFiles } from '@liyu1981/reagent';

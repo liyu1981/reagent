@@ -10,8 +10,8 @@ come from three places:
 2. **The skill loader** — added automatically when at least one skill is enabled.
 3. **Host descriptors and raw tools** — the `extraDescriptors` and `extraTools`
    props.
-4. **Built-in filesystem tools** — installable via `getFileSystemTools`
-   (see [Filesystem tools](#filesystem-tools)).
+4. **Built-in artifact tools** — installable via `getArtifactTools`
+   (see [Artifact tools](#artifact-tools)).
 
 Editor tools, available only when an editor is supplied:
 
@@ -28,50 +28,50 @@ Editor tools, available only when an editor is supplied:
 Edits are **staged**, not applied: the user reviews them via `openReview()`
 before anything persists.
 
-## Filesystem tools
+## Artifact tools
 
 ReAgent ships a small set of built-in tools for the browser's Origin Private
-File System (OPFS). The tools work inside `<opfs>/<id>/` — the browser's private
-OPFS root plus one namespace folder named by the agent id — and create that
-folder when it does not exist yet. The host never picks a folder; nothing outside
-the browser's OPFS is ever touched. The tools are installed by calling
-`getFileSystemTools` with the agent id and passing the result as
-`extraDescriptors`. Nothing is installed by default.
+File System (OPFS) — the agent's **artifact store**. The tools work inside
+`<opfs>/<id>/` — the browser's private OPFS root plus one namespace folder named
+by the agent id — and create that folder when it does not exist yet. The host
+never picks a folder; nothing outside the browser's OPFS is ever touched. The
+tools are installed by calling `getArtifactTools` with the agent id and passing
+the result as `extraDescriptors`. Nothing is installed by default.
 
 ```tsx
-import { getFileSystemTools } from '@liyu1981/reagent';
+import { getArtifactTools } from '@liyu1981/reagent';
 
-const filesystemTools = getFileSystemTools('notes');
+const artifactTools = getArtifactTools('notes');
 
-<ReAgentProvider editor={editor} extraDescriptors={filesystemTools}>
+<ReAgentProvider editor={editor} extraDescriptors={artifactTools}>
   {children}
 </ReAgentProvider>
 ```
 
 Each namespace maps to one isolated folder inside the OPFS root, so different
-agents keep separate filesystems.
+agents keep separate artifact stores.
 
 | Tool | Purpose |
 | ---- | ------- |
-| `opfs_list` | List files and folders under a path (relative to the namespace root). |
-| `opfs_read` | Read a file's text content. |
-| `opfs_write` | Create or overwrite a file (creates parent folders as needed). |
+| `artifact_list` | List files and folders under a path (relative to the namespace root). |
+| `artifact_read` | Read a file's text content. |
+| `artifact_write` | Create or overwrite a file (creates parent folders as needed). |
 
-`opfs_write` covers create-or-overwrite; there is no separate create tool. All
-paths are relative to `<opfs>/<id>/`. Files written by `opfs_write` are returned
-as attachments on the assistant message, with the same preview/download card as
-user attachments.
+`artifact_write` covers create-or-overwrite; there is no separate create tool.
+All paths are relative to `<opfs>/<id>/`. Files written by `artifact_write` are
+returned as attachments on the assistant message, with the same preview/download
+card as user attachments.
 
-### Filesystem settings UI
+### Artifact settings UI
 
-When filesystem tools are installed, the general settings tab renders the
-filesystem section: the configured namespace, an aggregate stats line (how many
-files the folder holds and how many bytes it occupies) and a **Browse files**
-button. Browsing swaps the chat surface for a full-surface file browser scoped
-to that namespace — folders are navigable, files can be previewed, downloaded
-and sized, and the current folder is shown in the breadcrumb.
+When artifact tools are installed, the general settings tab renders the
+**Artifacts** section: the configured namespace, an aggregate stats line (how
+many files the folder holds and how many bytes it occupies) and a **Browse
+artifacts** button. Browsing swaps the chat surface for a full-surface artifact
+browser scoped to that namespace — folders are navigable, files can be previewed,
+downloaded and sized, and the current folder is shown in the breadcrumb.
 
-### Filesystem attachments
+### Artifact attachments
 
 Pair the tools with an OPFS file store so conversation attachments land in the
 same namespace the model can inspect:
@@ -89,11 +89,11 @@ const files = createOpfsFiles('notes');
 
 Uploaded files are written to `<opfs>/<id>/uploads/` and referenced from the
 user message, so they survive reloads and are visible in the file browser. The
-system prompt lists the attached files and tells the model to use `opfs_list` /
-`opfs_read` for text. Binary files such as PDFs are available for preview and
+system prompt lists the attached files and tells the model to use `artifact_list`
+/ `artifact_read` for text. Binary files such as PDFs are available for preview and
 download but are not readable by the model unless a host tool extracts them.
 
-The **Filesystem · Attachments** demo wires this up with a fake in-page LLM, so
+The **Artifacts · Attachments** demo wires this up with a fake in-page LLM, so
 you can try attachment upload, reading and writing without a model key.
 
 ## Descriptors
@@ -107,7 +107,7 @@ interface AgentToolDescriptor {
   name: string;
   label: string;
   description: string;
-  group: 'content' | 'editor' | 'web' | 'skills' | 'mcp' | 'filesystem';
+  group: 'content' | 'editor' | 'web' | 'skills' | 'mcp' | 'artifacts';
   requiresEditor?: boolean;
   requiresOpfs?: boolean;
   defaultEnabled?: boolean;
@@ -127,7 +127,7 @@ import {
   activeToolDescriptors,
   buildAgentTools,
   buildToolsFromDescriptors,
-  getFileSystemTools,
+  getArtifactTools,
   listToolDescriptors,
 } from '@liyu1981/reagent';
 ```

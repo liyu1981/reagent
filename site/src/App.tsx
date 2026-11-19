@@ -37,8 +37,12 @@ export function App() {
         <Route path="docs" element={<Docs />} />
         <Route path="docs/:slug" element={<Docs />} />
         <Route
+          path="artifact-tools"
+          element={<Navigate to="/docs/tools-and-skills#artifact-tools" replace />}
+        />
+        <Route
           path="filesystem-tools"
-          element={<Navigate to="/docs/tools-and-skills#filesystem-tools" replace />}
+          element={<Navigate to="/docs/tools-and-skills#artifact-tools" replace />}
         />
         <Route path="*" element={<NotFound />} />
       </Route>

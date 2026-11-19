@@ -145,8 +145,8 @@ export interface ReAgentContextValue {
 
   toolLabels: Map<string, string>;
   tools: AgentToolDescriptor[];
-  /** Installed built-in filesystem tools (host-installed via `getFileSystemTools`). */
-  filesystem: {
+  /** Installed built-in artifact tools (host-installed via `getArtifactTools`). */
+  artifacts: {
     namespace: string;
     tools: AgentToolDescriptor[];
     /** Origin-private filesystem root (browser OPFS) the namespace folder hangs off. */
@@ -172,7 +172,7 @@ export interface ReAgentContextValue {
   renderMarkdown: ReAgentMarkdown | undefined;
 }
 
-export type ReAgentView = 'chat' | 'settings' | 'sessions' | 'filesystem';
+export type ReAgentView = 'chat' | 'settings' | 'sessions' | 'artifacts';
 
 export const ReAgentContext = createContext<ReAgentContextValue | null>(null);
 
@@ -942,9 +942,9 @@ export function ReAgentProvider({
     }
     latestRef.current = sessionNow;
     setCallBlock(null);
-    const filesystemToolsActive = (extraDescriptorsRef.current ?? []).some(
+    const artifactToolsActive = (extraDescriptorsRef.current ?? []).some(
       descriptor =>
-        descriptor.group === 'filesystem' &&
+        descriptor.group === 'artifacts' &&
         !(configRef.current.toolsDisabled ?? []).includes(descriptor.id),
     );
     const knownFiles = new Map<string, ReAgentFileRef>();
@@ -955,7 +955,7 @@ export function ReAgentProvider({
     // message (`state.systemPrompt` is read-only), so update that message.
     const nextPrompt = [
       buildSystemPrompt(currentBasePrompt()),
-      filesSystemPrompt([...knownFiles.values()], filesystemToolsActive),
+      filesSystemPrompt([...knownFiles.values()], artifactToolsActive),
     ]
       .filter(section => section !== '')
       .join('\n\n');
@@ -1163,14 +1163,14 @@ export function ReAgentProvider({
 
   const sessionTree = useMemo(() => buildSessionTree(sessions), [sessions]);
 
-  const installedFilesystemTools = (extraDescriptorsRef.current ?? []).filter(
-    descriptor => descriptor.group === 'filesystem',
+  const installedArtifactTools = (extraDescriptorsRef.current ?? []).filter(
+    descriptor => descriptor.group === 'artifacts',
   );
-  const filesystem =
-    installedFilesystemTools.length > 0 && installedFilesystemTools[0]?.namespace !== undefined
+  const artifacts =
+    installedArtifactTools.length > 0 && installedArtifactTools[0]?.namespace !== undefined
       ? {
-          namespace: installedFilesystemTools[0].namespace,
-          tools: installedFilesystemTools,
+          namespace: installedArtifactTools[0].namespace,
+          tools: installedArtifactTools,
           opfs: opfsRoot,
         }
       : null;
@@ -1236,7 +1236,7 @@ export function ReAgentProvider({
       hasEditor: editor !== undefined && editor !== null,
       hasSkills: enabledSkillDefinitions(getAgentConfig(prefix)).length > 0,
     }),
-    filesystem,
+    artifacts,
     files: files ?? null,
     t,
     language,

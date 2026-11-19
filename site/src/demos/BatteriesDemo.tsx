@@ -41,7 +41,7 @@ Generate ideas before judging them:
   },
 ];
 
-/** The built-in filesystem tools + attachment store, sharing one namespace. */
+/** The built-in artifact tools + attachment store, sharing one namespace. */
 const FILES = createOpfsFiles('demo');
 
 /** A host-defined tool: the model can ask for the current time. */

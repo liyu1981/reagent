@@ -58,7 +58,7 @@ required visual style of their own.
 | `ReAgentFileAttachment`, `ReAgentFilePreviewProvider`, `ReAgentFilePreviewPanel` | Stored-file card and the contained preview/download surface. The preset wraps its root in the provider automatically. |
 | `ReAgentComposer` + `ReAgentComposerInput`, `ReAgentComposerRow`, `ReAgentComposerAttach`, `ReAgentComposerAttachments`, `ReAgentComposerSelectionChip`, `ReAgentComposerStatus`, `ReAgentContextMeter`, `ReAgentModelPicker`, `ReAgentThinkingPicker`, `ReAgentSendButton` | The composer and its controls. |
 | `ReAgentSessionsView` | Conversation-tree browser. |
-| `ReAgentFileBrowser` | Full-surface OPFS browser (settings → Filesystem → Browse files). |
+| `ReAgentArtifactBrowser` | Full-surface OPFS browser for the agent's artifact store (settings → Artifacts → Browse artifacts). |
 | `ReAgentSettingsView` + `ReAgentGeneralPanel`, `ReAgentModelPanel`, `ReAgentPromptPanel`, `ReAgentSkillsPanel`, `ReAgentToolsPanel`, `ReAgentMcpPanel`, `ReAgentWebMcpPanel` | Settings tabs. |
 
 Because these call `useReAgent()`, they must be rendered inside a

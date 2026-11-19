@@ -3,7 +3,7 @@ import { useLayoutEffect, useState } from 'react';
 
 import { CodeBlock } from '../components/CodeBlock';
 import { BatteriesDemo, prepareBatteriesDemo } from '../demos/BatteriesDemo';
-import { FilesystemDemo, prepareFilesystemDemo } from '../demos/FilesystemDemo';
+import { ArtifactsDemo, prepareArtifactsDemo } from '../demos/ArtifactsDemo';
 import { HostProviderDemo } from '../demos/HostProviderDemo';
 import { VanillaDemo } from '../demos/VanillaDemo';
 import { WebMcpDemo } from '../demos/WebMcpDemo';
@@ -17,7 +17,7 @@ import {
 import { cn } from '../lib/cn';
 import type { SiteTheme } from '../lib/theme';
 import batteriesSource from '../demos/BatteriesDemo.tsx?raw';
-import filesystemSource from '../demos/FilesystemDemo.tsx?raw';
+import artifactsSource from '../demos/ArtifactsDemo.tsx?raw';
 import hostSource from '../demos/HostProviderDemo.tsx?raw';
 import vanillaSource from '../demos/VanillaDemo.tsx?raw';
 import webmcpSource from '../demos/WebMcpDemo.tsx?raw';
@@ -34,11 +34,11 @@ const TABS: { id: DemoMode; label: string; blurb: string }[] = [
     id: 'batteries',
     label: 'Skills · Tools · MCP',
     blurb:
-      'Two host-defined skills, a custom tool, OPFS attachments with filesystem tools and the Exa MCP server.',
+      'Two host-defined skills, a custom tool, OPFS attachments with artifact tools and the Exa MCP server.',
   },
   {
-    id: 'filesystem',
-    label: 'Filesystem · Attachments',
+    id: 'artifacts',
+    label: 'Artifacts · Attachments',
     blurb:
       'A fake in-page LLM that really calls the OPFS tools. Attach a text file and ask it to read the file, ask it to write a note, or browse the namespace in Settings.',
   },
@@ -65,9 +65,9 @@ function resetToVanilla(): void {
 function applyDemo(mode: DemoMode): void {
   if (mode === 'batteries') {
     prepareBatteriesDemo();
-  } else if (mode === 'filesystem') {
+  } else if (mode === 'artifacts') {
     resetToVanilla();
-    prepareFilesystemDemo();
+    prepareArtifactsDemo();
   } else {
     resetToVanilla();
   }
@@ -105,14 +105,14 @@ export function Demos({ theme }: { theme: SiteTheme }) {
   const SOURCES: Record<DemoMode, string> = {
     vanilla: vanillaSource,
     batteries: batteriesSource,
-    filesystem: filesystemSource,
+    artifacts: artifactsSource,
     webmcp: webmcpSource,
     host: hostSource,
   };
   const COMPONENTS: Record<DemoMode, typeof VanillaDemo> = {
     vanilla: VanillaDemo,
     batteries: BatteriesDemo,
-    filesystem: FilesystemDemo,
+    artifacts: ArtifactsDemo,
     webmcp: WebMcpDemo,
     host: HostProviderDemo,
   };

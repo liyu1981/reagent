@@ -63,7 +63,7 @@ export function resolveSystemPrompt(
  * System-prompt section describing files attached to the conversation. Kept
  * out of the visible user text: the UI renders the refs as attachment cards.
  */
-export function filesSystemPrompt(files: ReAgentFileRef[], hasFilesystemTools: boolean): string {
+export function filesSystemPrompt(files: ReAgentFileRef[], hasArtifactTools: boolean): string {
   if (files.length === 0) {
     return '';
   }
@@ -78,8 +78,8 @@ export function filesSystemPrompt(files: ReAgentFileRef[], hasFilesystemTools: b
   if (files.length > shown.length) {
     lines.push(`- …and ${files.length - shown.length} more`);
   }
-  const instruction = hasFilesystemTools
-    ? 'Files are stored in your agent filesystem. Use opfs_list to inspect it and opfs_read to read text files. Do not claim to have read a binary file you cannot read.'
+  const instruction = hasArtifactTools
+    ? 'Files are stored in your agent artifact store. Use artifact_list to inspect it and artifact_read to read text files. Do not claim to have read a binary file you cannot read.'
     : 'The files are stored for the user to preview or download; their contents are not available to you unless a tool exposes them.';
   return `## Files attached by the user\n${lines.join('\n')}\n\n${instruction}`;
 }

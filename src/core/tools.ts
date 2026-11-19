@@ -23,7 +23,7 @@ function requireEditor(editor: EditorMutationBridge | undefined): EditorMutation
 
 /**
  * Resolve the browser's Origin Private File System root. This is the `<opfs>`
- * prefix every filesystem namespace folder hangs off; the host never picks a
+ * prefix every artifact namespace folder hangs off; the host never picks a
  * folder — the agent only ever works inside OPFS.
  */
 export async function getOpfsRoot(): Promise<FileSystemDirectoryHandle | null> {
@@ -113,7 +113,7 @@ async function collectOpfsStats(dir: FileSystemDirectoryHandle): Promise<OpfsSta
   return { files, bytes };
 }
 
-/** Count files and bytes under an agent filesystem namespace. */
+/** Count files and bytes under an agent artifact namespace. */
 export async function getOpfsStats(
   handle: FileSystemDirectoryHandle | null | undefined,
   namespace: string,
@@ -136,7 +136,7 @@ export interface OpfsEntry {
   size?: number;
 }
 
-/** List directory entries under an agent filesystem namespace. */
+/** List directory entries under an agent artifact namespace. */
 export async function listOpfsEntries(
   handle: FileSystemDirectoryHandle | null | undefined,
   namespace: string,
@@ -171,18 +171,18 @@ export async function listOpfsEntries(
  * it does not exist yet. Hosts install them by passing the result as
  * `extraDescriptors`.
  */
-export function getFileSystemTools(id: string): AgentToolDescriptor[] {
+export function getArtifactTools(id: string): AgentToolDescriptor[] {
   return [
-    defineTool('filesystem', { opfs: true }, ctx => ({
-      name: 'opfs_list',
+    defineTool('artifacts', { opfs: true }, ctx => ({
+      name: 'artifact_list',
       namespace: id,
-      label: 'List files',
-      description: `List the files and folders in the agent filesystem (Origin Private File System) under "${id}". Paths are relative to the agent filesystem root.`,
+      label: 'List artifacts',
+      description: `List the files and folders in the agent artifact store (Origin Private File System) under "${id}". Paths are relative to the agent artifact root.`,
       parameters: Type.Object({
         path: Type.Optional(
           Type.String({
             description:
-              'Directory to list, relative to the agent filesystem root. Defaults to the root.',
+              'Directory to list, relative to the agent artifact root. Defaults to the root.',
           }),
         ),
       }),
@@ -190,7 +190,7 @@ export function getFileSystemTools(id: string): AgentToolDescriptor[] {
         const handle = ctx.opfs ?? (await getOpfsRoot());
         if (handle === undefined || handle === null) {
           throw new Error(
-            'No filesystem is available — no Origin Private File System directory was found.',
+            'No artifact store is available — no Origin Private File System directory was found.',
           );
         }
         const segments = opfsSegments((args as { path?: string }).path);
@@ -203,21 +203,21 @@ export function getFileSystemTools(id: string): AgentToolDescriptor[] {
       },
     })),
 
-    defineTool('filesystem', { opfs: true }, ctx => ({
-      name: 'opfs_read',
+    defineTool('artifacts', { opfs: true }, ctx => ({
+      name: 'artifact_read',
       namespace: id,
-      label: 'Read file',
-      description: `Read a text file from the agent filesystem (Origin Private File System) under "${id}". Paths are relative to the agent filesystem root.`,
+      label: 'Read artifact',
+      description: `Read a text file from the agent artifact store (Origin Private File System) under "${id}". Paths are relative to the agent artifact root.`,
       parameters: Type.Object({
         path: Type.String({
-          description: 'File path, relative to the agent filesystem root.',
+          description: 'File path, relative to the agent artifact root.',
         }),
       }),
       execute: async (_toolCallId, args) => {
         const handle = ctx.opfs ?? (await getOpfsRoot());
         if (handle === undefined || handle === null) {
           throw new Error(
-            'No filesystem is available — no Origin Private File System directory was found.',
+            'No artifact store is available — no Origin Private File System directory was found.',
           );
         }
         const segments = opfsSegments((args as { path: string }).path);
@@ -232,14 +232,14 @@ export function getFileSystemTools(id: string): AgentToolDescriptor[] {
       },
     })),
 
-    defineTool('filesystem', { opfs: true }, ctx => ({
-      name: 'opfs_write',
+    defineTool('artifacts', { opfs: true }, ctx => ({
+      name: 'artifact_write',
       namespace: id,
-      label: 'Write file',
-      description: `Write (create or overwrite) a text file in the agent filesystem (Origin Private File System) under "${id}". Paths are relative to the agent filesystem root.`,
+      label: 'Write artifact',
+      description: `Write (create or overwrite) a text file in the agent artifact store (Origin Private File System) under "${id}". Paths are relative to the agent artifact root.`,
       parameters: Type.Object({
         path: Type.String({
-          description: 'File path, relative to the agent filesystem root.',
+          description: 'File path, relative to the agent artifact root.',
         }),
         content: Type.String({
           description: 'Full content to write to the file.',
@@ -249,7 +249,7 @@ export function getFileSystemTools(id: string): AgentToolDescriptor[] {
         const handle = ctx.opfs ?? (await getOpfsRoot());
         if (handle === undefined || handle === null) {
           throw new Error(
-            'No filesystem is available — no Origin Private File System directory was found.',
+            'No artifact store is available — no Origin Private File System directory was found.',
           );
         }
         const segments = opfsSegments((args as { path: string }).path);
@@ -425,7 +425,7 @@ export const SKILL_TOOL_DESCRIPTOR: AgentToolDescriptor = {
 
 export interface BuildAgentToolsOptions {
   editor?: EditorMutationBridge;
-  /** Origin-private filesystem root override for filesystem tools; defaults to the browser's OPFS root. */
+  /** Origin-private filesystem root override for artifact tools; defaults to the browser's OPFS root. */
   opfs?: FileSystemDirectoryHandle | null;
   extraTools?: AgentTool<any>[];
   /** Host-injected descriptors (shown in the tools panel and built into the run). */

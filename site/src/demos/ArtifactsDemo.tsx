@@ -5,11 +5,11 @@ import { useRef, useState } from 'react';
 
 import { AgentMarkdown } from '../components/Markdown';
 
-const FAKE_PROVIDER_ID = 'fake-filesystem';
-const FAKE_MODEL_ID = 'fake-filesystem';
-const FAKE_BASE_URL = 'https://fake-filesystem.invalid/v1';
+const FAKE_PROVIDER_ID = 'fake-artifacts';
+const FAKE_MODEL_ID = 'fake-artifacts';
+const FAKE_BASE_URL = 'https://fake-artifacts.invalid/v1';
 
-const FILES = createOpfsFiles('filesystem-demo');
+const FILES = createOpfsFiles('artifacts-demo');
 const SUGGESTED_PROMPT = 'Write a note about our solar system.';
 
 interface FakeToolCall {
@@ -112,7 +112,7 @@ let callCounter = 0;
 
 function completionChunk(delta: Record<string, unknown>, finishReason: string | null): unknown {
   return {
-    id: 'chatcmpl-fake-filesystem',
+    id: 'chatcmpl-fake-artifacts',
     object: 'chat.completion.chunk',
     created: Math.floor(Date.now() / 1000),
     model: FAKE_MODEL_ID,
@@ -162,7 +162,7 @@ function toolResponse(name: string, args: Record<string, unknown>): Response {
 
 /**
  * A deterministic fake OpenAI-compatible endpoint. It really does call the
- * filesystem tools: list the namespace, read the attached file's text, or
+ * artifact tools: list the namespace, read the attached file's text, or
  * write a note when the user asks for one.
  */
 const fakeFetch: FetchFunction = async (input, init) => {
@@ -196,39 +196,39 @@ const fakeFetch: FetchFunction = async (input, init) => {
   const lastToolName = lastAssistantToolName(currentTurn);
 
   if (toolResults === 0) {
-    if (tools.has('opfs_write') && /\b(write|create|save|note)\b/i.test(userText)) {
-      return toolResponse('opfs_write', {
+    if (tools.has('artifact_write') && /\b(write|create|save|note)\b/i.test(userText)) {
+      return toolResponse('artifact_write', {
         path: 'fake-llm-note.md',
-        content: 'This note was written by the fake LLM through the OPFS filesystem tools.',
+        content: 'This note was written by the fake LLM through the OPFS artifact tools.',
       });
     }
-    if (tools.has('opfs_list')) {
-      return toolResponse('opfs_list', {});
+    if (tools.has('artifact_list')) {
+      return toolResponse('artifact_list', {});
     }
     return textResponse(
-      'This is a fake LLM. Install the filesystem tools to let it list and read files.',
+      'This is a fake LLM. Install the artifact tools to let it list and read files.',
     );
   }
 
-  if (lastToolName === 'opfs_list' && path !== undefined && tools.has('opfs_read')) {
-    return toolResponse('opfs_read', { path });
+  if (lastToolName === 'artifact_list' && path !== undefined && tools.has('artifact_read')) {
+    return toolResponse('artifact_read', { path });
   }
 
   const result = lastToolResult(currentTurn);
-  if (lastToolName === 'opfs_write') {
+  if (lastToolName === 'artifact_write') {
     return textResponse(
-      'I wrote `fake-llm-note.md` through the filesystem tools. Click the eye icon on the attachment below to preview it, or open **Settings → Filesystem → Browse files** to see it.\n\nThe fake model did this without calling a real LLM.',
+      'I wrote `fake-llm-note.md` through the artifact tools. Click the eye icon on the attachment below to preview it, or open **Settings → Artifacts → Browse artifacts** to see it.\n\nThe fake model did this without calling a real LLM.',
     );
   }
-  if (lastToolName === 'opfs_read') {
+  if (lastToolName === 'artifact_read') {
     const excerpt = result.length > 1500 ? `${result.slice(0, 1500)}…` : result;
     return textResponse(
-      `I read the attached file \`${path ?? 'file'}\` with \`opfs_read\`:\n\n\`\`\`\n${excerpt}\n\`\`\`\n\nThis response came from the fake LLM, not a real model.`,
+      `I read the attached file \`${path ?? 'file'}\` with \`artifact_read\`:\n\n\`\`\`\n${excerpt}\n\`\`\`\n\nThis response came from the fake LLM, not a real model.`,
     );
   }
   const excerpt = result.length > 1500 ? `${result.slice(0, 1500)}…` : result;
   return textResponse(
-    `I used \`${lastToolName ?? 'the filesystem tool'}\`. Result:\n\n\`\`\`\n${excerpt}\n\`\`\`\n\nThis response came from the fake LLM, not a real model.`,
+    `I used \`${lastToolName ?? 'the artifact tool'}\`. Result:\n\n\`\`\`\n${excerpt}\n\`\`\`\n\nThis response came from the fake LLM, not a real model.`,
   );
 };
 
@@ -242,10 +242,10 @@ const FAKE_CONFIG: ReAgentHostProviderConfig = {
 function FakeSetup() {
   return (
     <div className="space-y-2 rounded-xl border border-border/50 p-3 text-sm">
-      <p className="font-medium">Fake Filesystem LLM</p>
+      <p className="font-medium">Fake Artifacts LLM</p>
       <p className="text-xs text-muted-foreground">
         This provider is an in-page mock. It speaks the OpenAI chat protocol, calls the real OPFS
-        filesystem tools, and never contacts a model server.
+        artifact tools, and never contacts a model server.
       </p>
     </div>
   );
@@ -253,13 +253,13 @@ function FakeSetup() {
 
 const fakeProvider: ReAgentHostProvider = {
   id: FAKE_PROVIDER_ID,
-  name: 'Fake Filesystem LLM',
+  name: 'Fake Artifacts LLM',
   component: FakeSetup,
   getConfig: () => FAKE_CONFIG,
 };
 
 /** Select the fake model before the provider mounts. */
-export function prepareFilesystemDemo(): void {
+export function prepareArtifactsDemo(): void {
   updateAgentConfig({
     model: { providerId: FAKE_PROVIDER_ID, modelId: FAKE_MODEL_ID },
     thinkingLevel: 'off',
@@ -304,11 +304,11 @@ function SuggestedPrompt() {
 }
 
 /**
- * Filesystem + attachments with a fake LLM. Copy the suggested prompt or
- * attach a text file, then ask about it. Open Settings → Filesystem → Browse
+ * Artifacts + attachments with a fake LLM. Copy the suggested prompt or
+ * attach a text file, then ask about it. Open Settings → Artifacts → Browse
  * files to inspect the namespace.
  */
-export function FilesystemDemo({ theme, surface = 'glass', notify }: DemoProps) {
+export function ArtifactsDemo({ theme, surface = 'glass', notify }: DemoProps) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
       <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
@@ -317,7 +317,7 @@ export function FilesystemDemo({ theme, surface = 'glass', notify }: DemoProps) 
         <SuggestedPrompt />
         <p className="mt-1.5">
           Or attach a text file and ask the fake model to read it. The fake model really calls{' '}
-          <code>opfs_list</code>, <code>opfs_read</code> and <code>opfs_write</code>.
+          <code>artifact_list</code>, <code>artifact_read</code> and <code>artifact_write</code>.
         </p>
       </div>
       <div className="min-h-0 flex-1">

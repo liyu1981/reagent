@@ -55,8 +55,8 @@ The [live demos](/demos) cover the range:
 - **Vanilla** — the preset and nothing else.
 - **Skills, tools & MCP** — host-defined skills, a custom tool and the Exa MCP
   server.
-- **Filesystem · Attachments** — OPFS attachments and tools with a fake,
-  in-page LLM (no API key needed).
+- **Artifacts · Attachments** — OPFS attachments and artifact tools with a
+  fake, in-page LLM (no API key needed).
 - **WebMCP** and **Host provider** — page tools and a host-injected model.
 
 Each demo displays its full source.

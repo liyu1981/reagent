@@ -21,8 +21,8 @@ function normalizeLegacyHash(): void {
     return;
   }
   const base = BASE_URL.replace(/\/$/, '');
-  if (hash === '#filesystem-tools') {
-    window.history.replaceState(null, '', `${base}/docs/tools-and-skills#filesystem-tools`);
+  if (hash === '#artifact-tools' || hash === '#filesystem-tools') {
+    window.history.replaceState(null, '', `${base}/docs/tools-and-skills#artifact-tools`);
     return;
   }
   if (hash.startsWith('#/')) {

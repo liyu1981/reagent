@@ -22,35 +22,35 @@ const RETENTION_OPTIONS: ReadonlyArray<{ value: number | null; labelKey: string 
 
 /**
  * The General settings tab. Sections: API key retention and the installed
- * filesystem tools. "Keep forever" is opt-in behind a warning and a second
+ * artifact tools. "Keep forever" is opt-in behind a warning and a second
  * confirmation.
  */
 export function ReAgentGeneralPanel() {
   const { t } = useTranslation();
   const toast = useToast();
-  const { storagePrefix, filesystem, setView } = useReAgent();
+  const { storagePrefix, artifacts, setView } = useReAgent();
   const { config } = useReAgentConfig();
   const [open, setOpen] = useState(false);
   const [confirmForever, setConfirmForever] = useState(false);
-  const [fsStats, setFsStats] = useState<{ files: number; bytes: number } | null>(null);
+  const [artifactStats, setArtifactStats] = useState<{ files: number; bytes: number } | null>(null);
 
   useEffect(() => {
-    const handle = filesystem?.opfs ?? null;
-    const namespace = filesystem?.namespace ?? '';
+    const handle = artifacts?.opfs ?? null;
+    const namespace = artifacts?.namespace ?? '';
     if (handle === null) {
-      setFsStats(null);
+      setArtifactStats(null);
       return;
     }
     let cancelled = false;
     void getOpfsStats(handle, namespace).then(next => {
       if (!cancelled) {
-        setFsStats(next);
+        setArtifactStats(next);
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [filesystem?.opfs, filesystem?.namespace]);
+  }, [artifacts?.opfs, artifacts?.namespace]);
 
   const retention = config.keyRetentionMs;
   const currentLabelKey =
@@ -126,25 +126,28 @@ export function ReAgentGeneralPanel() {
         </div>
       </section>
 
-      {filesystem !== null ? (
+      {artifacts !== null ? (
         <section className="space-y-2">
           <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t('agent.fsTitle')}
+            {t('agent.artifactsTitle')}
           </p>
           <div className="space-y-3 rounded-xl border border-border/50 p-3">
             <p className="text-xs text-muted-foreground">
-              {t('agent.fsDescription', { fs: filesystem.namespace })}
+              {t('agent.artifactsDescription', { namespace: artifacts.namespace })}
             </p>
             <p className="text-xs text-muted-foreground">
-              {t('agent.fsStats', { files: fsStats?.files ?? 0, bytes: fsStats?.bytes ?? 0 })}
+              {t('agent.artifactsStats', {
+                files: artifactStats?.files ?? 0,
+                bytes: artifactStats?.bytes ?? 0,
+              })}
             </p>
             <Button
               type="button"
               variant="outline"
-              onClick={() => setView('filesystem')}
-              disabled={filesystem.opfs === null}
+              onClick={() => setView('artifacts')}
+              disabled={artifacts.opfs === null}
             >
-              {t('agent.fsBrowse')}
+              {t('agent.artifactsBrowse')}
             </Button>
           </div>
         </section>

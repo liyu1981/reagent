@@ -70,7 +70,7 @@ The config is kept **in memory only** — ReAgent never writes it to
 - `authHeaders` shapes how the key reaches the API (a custom header, a
   different scheme, …) and overrides the default bearer header.
 - A provider can supply its own `fetch` to mock the endpoint in-page. Both the
-  [host provider demo](/demos) and the **Filesystem · Attachments** demo use a
+  [host provider demo](/demos) and the **Artifacts · Attachments** demo use a
   fake provider, so they run without an API key.
 
 Next: [WebMCP](./webmcp) →

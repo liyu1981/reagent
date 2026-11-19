@@ -58,10 +58,10 @@ export * from './core/types';
 export * from './core/webmcp';
 
 export * from './ui/reagent';
+export * from './ui/reagent-artifact-browser';
 export * from './ui/reagent-call-gate';
 export * from './ui/reagent-composer';
 export * from './ui/reagent-file-attachment';
-export * from './ui/reagent-file-browser';
 export * from './ui/reagent-header';
 export * from './ui/reagent-message';
 export * from './ui/reagent-message-list';
