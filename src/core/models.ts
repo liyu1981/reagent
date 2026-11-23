@@ -25,7 +25,11 @@ import {
   type ReAgentHostProviderApi,
 } from './host-providers';
 import { DEFAULT_STORAGE_PREFIX, storageKey } from './storage';
-import type { ReAgentCloudModelSpec, ReAgentCloudProviderSpec } from './types';
+import type {
+  ReAgentCloudModelSpec,
+  ReAgentCloudProviderSpec,
+  ReAgentProviderFilter,
+} from './types';
 import { DEFAULT_OLLAMA_BASE_URL, OLLAMA_PROVIDER_ID } from './types';
 
 export { OLLAMA_PROVIDER_ID };
@@ -555,7 +559,75 @@ export function isProviderEnabled(
   providerId: string,
   prefix: string = DEFAULT_STORAGE_PREFIX,
 ): boolean {
+  const filter = getProviderFilter(prefix);
+  if (filter?.enabled !== undefined && !filter.enabled.includes(providerId)) {
+    return false;
+  }
+  if (filter?.disabled !== undefined && filter.disabled.includes(providerId)) {
+    return false;
+  }
   return !getAgentConfig(prefix).providersDisabled.includes(providerId);
+}
+
+// Non-persisted per-prefix provider filters, set from the `providerFilter`
+// prop of the mounted `<ReAgentProvider>`.
+const providerFilters = new Map<string, ReAgentProviderFilter>();
+
+/** The provider filter the host passed to `<ReAgentProvider>`, if any. */
+export function getProviderFilter(
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): ReAgentProviderFilter | null {
+  return providerFilters.get(prefix) ?? null;
+}
+
+function sameIds(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
+  if (a === undefined || b === undefined) {
+    return a === b;
+  }
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+function normalizeProviderFilter(
+  filter: ReAgentProviderFilter | null | undefined,
+): ReAgentProviderFilter | null {
+  if (filter === null || filter === undefined) {
+    return null;
+  }
+  const clean = (ids: readonly string[] | undefined): string[] | undefined =>
+    ids === undefined ? undefined : [...new Set(ids.filter(id => typeof id === 'string'))];
+  const enabled = clean(filter.enabled);
+  const disabled = clean(filter.disabled);
+  if (enabled === undefined && disabled === undefined) {
+    return null;
+  }
+  return { enabled, disabled };
+}
+
+/**
+ * Point a storage prefix at a host provider filter (or clear it with `null`).
+ * Returns whether the filter changed; the caller decides when to rebuild the
+ * registry, because this may run during render. Unlike `setProviderEnabled`,
+ * nothing is persisted — the filter is part of the component props.
+ */
+export function setProviderFilter(
+  filter: ReAgentProviderFilter | null | undefined,
+  prefix: string = DEFAULT_STORAGE_PREFIX,
+): boolean {
+  const next = normalizeProviderFilter(filter);
+  const current = providerFilters.get(prefix) ?? null;
+  const unchanged =
+    next === null || current === null
+      ? next === current
+      : sameIds(next.enabled, current.enabled) && sameIds(next.disabled, current.disabled);
+  if (unchanged) {
+    return false;
+  }
+  if (next === null) {
+    providerFilters.delete(prefix);
+  } else {
+    providerFilters.set(prefix, next);
+  }
+  return true;
 }
 
 /**
@@ -736,7 +808,9 @@ function withLiveModels(provider: Provider<Api>): Provider<Api> {
 function buildModels(prefix: string): MutableModels {
   const models = createModels({ credentials: credentialStore(prefix) });
   const config = getAgentConfig(prefix);
-  const disabled = new Set(config.providersDisabled);
+  const filter = getProviderFilter(prefix);
+  const allow = filter?.enabled === undefined ? null : new Set(filter.enabled);
+  const disabled = new Set([...config.providersDisabled, ...(filter?.disabled ?? [])]);
   // Host-injected providers first, then browser-verified built-ins, then the
   // custom providers, then our keyless OpenAI-compatible endpoint.
   const registered = new Set<string>();
@@ -747,6 +821,9 @@ function buildModels(prefix: string): MutableModels {
       return false;
     }
     registered.add(id);
+    if (allow !== null && !allow.has(id)) {
+      return false;
+    }
     return !disabled.has(id);
   };
   for (const { descriptor, config: hostConfig } of activeHostProviders()) {

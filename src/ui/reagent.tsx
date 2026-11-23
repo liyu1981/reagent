@@ -14,7 +14,12 @@ import type {
   ReAgentTranslate,
 } from '../core/messages';
 import { ReAgentProvider } from '../core/reagent-provider';
-import type { AgentDraft, AgentToolDescriptor, ReAgentFilesConfig } from '../core/types';
+import type {
+  AgentDraft,
+  AgentToolDescriptor,
+  ReAgentFilesConfig,
+  ReAgentProviderFilter,
+} from '../core/types';
 import { cn } from '../lib/utils';
 import { Button } from '../primitives/button';
 import {
@@ -82,6 +87,11 @@ export interface ReAgentProps {
   storagePrefix?: string;
   /** Host-injected LLM providers (own setup UI; config kept in memory only). */
   hostProviders?: ReAgentHostProvider[];
+  /**
+   * Which providers the agent may use. Omit it to register every available
+   * provider; `{ enabled }` is an allow-list, `{ disabled }` a deny-list.
+   */
+  providerFilter?: ReAgentProviderFilter;
   /** Runs before each agent call; block it with `{ ok: false, message, ui }`. */
   beforeAgentCall?: ReAgentCallGate;
 }
@@ -127,6 +137,7 @@ export function ReAgent({
   extraDescriptors,
   storagePrefix,
   hostProviders,
+  providerFilter,
   beforeAgentCall,
 }: ReAgentProps) {
   return (
@@ -147,6 +158,7 @@ export function ReAgent({
       extraDescriptors={extraDescriptors}
       storagePrefix={storagePrefix}
       hostProviders={hostProviders}
+      providerFilter={providerFilter}
       beforeAgentCall={beforeAgentCall}
     >
       <ReAgentChrome onClose={onClose} surface={surface} className={className} />

@@ -1,6 +1,7 @@
-import { Check, ChevronsUpDown, KeyRound, Loader2, RefreshCw, X } from 'lucide-react';
+import { Check, ChevronDown, ChevronsUpDown, KeyRound, Loader2, RefreshCw, X } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { useReAgent, useReAgentConfig } from '../../core/hooks';
+import { useReAgent } from '../../core/hooks';
 import { useToast, useTranslation } from '../../core/i18n';
 import {
   clearApiKey,
@@ -8,23 +9,22 @@ import {
   getModelsVersion,
   getOllamaBaseUrl,
   hasCredential,
+  isProviderEnabled,
   isVerified,
-  listConfigurableProviders,
   OLLAMA_PROVIDER_ID,
   refreshModels,
   saveApiKey,
   setOllamaBaseUrl,
-  setProviderEnabled,
   subscribeModels,
   testConnection,
 } from '../../core/models';
 import { cn } from '../../lib/utils';
 import { Badge } from '../../primitives/badge';
 import { Button } from '../../primitives/button';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '../../primitives/collapsible';
 import { Input } from '../../primitives/input';
 import { Label } from '../../primitives/label';
 import { Popover, PopoverContent, PopoverTrigger } from '../../primitives/popover';
-import { Switch } from '../../primitives/switch';
 
 interface ProviderOption {
   id: string;
@@ -126,11 +126,44 @@ function StatusMessage({ status }: { status: PanelStatus }) {
   );
 }
 
+/** A titled settings section the user can collapse; open by default. */
+function PanelSection({
+  title,
+  children,
+  defaultOpen = true,
+}: {
+  title: string;
+  children: ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <Collapsible open={open} onOpenChange={setOpen} asChild>
+      <section className="space-y-2">
+        <CollapsibleTrigger asChild>
+          <button
+            type="button"
+            className="flex w-full items-center gap-1 rounded-sm text-left text-xs font-medium tracking-wide text-muted-foreground uppercase transition-colors hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+          >
+            <ChevronDown
+              className={cn('size-3.5 shrink-0 transition-transform', !open && '-rotate-90')}
+            />
+            <span className="truncate">{title}</span>
+          </button>
+        </CollapsibleTrigger>
+        {/* forceMount keeps half-typed keys alive while the section is closed. */}
+        <CollapsibleContent forceMount className="space-y-2 data-[state=closed]:hidden">
+          {children}
+        </CollapsibleContent>
+      </section>
+    </Collapsible>
+  );
+}
+
 export function ReAgentModelPanel() {
   const { t } = useTranslation();
   const toast = useToast();
   const { storagePrefix, hostProviders } = useReAgent();
-  const { config } = useReAgentConfig();
   // Recompute when the registry changes (custom providers added/removed, the
   // Ollama base URL changed, …).
   const modelsVersion = useSyncExternalStore(
@@ -150,16 +183,6 @@ export function ReAgentModelPanel() {
   const cloudProviders = useMemo(
     () => providers.filter(provider => provider.id !== OLLAMA_PROVIDER_ID),
     [providers],
-  );
-  const disabledProviders = useMemo(
-    () => new Set(config.providersDisabled),
-    [config.providersDisabled],
-  );
-  // Every provider the user can switch, including the ones currently off (they
-  // are not in the registry, so they would otherwise vanish from the panel).
-  const configurableProviders = useMemo(
-    () => listConfigurableProviders(storagePrefix),
-    [storagePrefix, modelsVersion, config.providersDisabled, config.customProviders],
   );
 
   const [selectedProvider, setSelectedProvider] = useState(
@@ -253,56 +276,21 @@ export function ReAgentModelPanel() {
 
   return (
     <div className="space-y-6">
-      {/* Which providers are registered at all — and so offered in the picker. */}
-      <section className="space-y-2">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {t('agent.providers')}
-        </p>
-        <div className="space-y-1 rounded-xl border border-border/50 p-3">
-          {configurableProviders.map(provider => (
-            <div key={provider.id} className="flex items-center gap-3">
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-medium">{provider.name}</p>
-                <p className="truncate text-xs text-muted-foreground">{provider.id}</p>
-              </div>
-              {verified[provider.id] && !disabledProviders.has(provider.id) && (
-                <Badge variant="outline" className="gap-1">
-                  <Check className="size-3" />
-                  {t('agent.verified')}
-                </Badge>
-              )}
-              <Switch
-                checked={!disabledProviders.has(provider.id)}
-                onCheckedChange={enabled => setProviderEnabled(provider.id, enabled, storagePrefix)}
-                aria-label={provider.name}
-              />
-            </div>
-          ))}
-        </div>
-        <p className="text-xs text-muted-foreground">{t('agent.providersDisabledHint')}</p>
-      </section>
-
       {/* Host-injected providers render their own setup UI here. */}
       {hostProviders
-        .filter(provider => !disabledProviders.has(provider.id))
+        .filter(provider => isProviderEnabled(provider.id, storagePrefix))
         .map(provider => {
           const HostComponent = provider.component;
           return (
-            <section key={provider.id} className="space-y-2">
-              <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                {provider.name}
-              </p>
+            <PanelSection key={provider.id} title={provider.name}>
               <HostComponent config={provider.config} setConfig={provider.setConfig} />
-            </section>
+            </PanelSection>
           );
         })}
 
       {/* Custom / local OpenAI-compatible endpoint */}
-      {!disabledProviders.has(OLLAMA_PROVIDER_ID) && (
-        <section className="space-y-2">
-          <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-            {t('agent.customLocalLlm')}
-          </p>
+      {isProviderEnabled(OLLAMA_PROVIDER_ID, storagePrefix) && (
+        <PanelSection title={t('agent.customLocalLlm')}>
           <div className="space-y-1.5 rounded-xl border border-border/50 p-3">
             <div className="flex gap-1.5">
               <Input
@@ -348,14 +336,11 @@ export function ReAgentModelPanel() {
               <StatusMessage status={status[OLLAMA_PROVIDER_ID]} />
             )}
           </div>
-        </section>
+        </PanelSection>
       )}
 
       {/* Cloud providers */}
-      <section className="space-y-2">
-        <p className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-          {t('agent.cloudProviders')}
-        </p>
+      <PanelSection title={t('agent.cloudProviders')}>
         <div className="space-y-2 rounded-xl border border-border/50 p-3">
           {cloudProviders.length === 0 && (
             <p className="text-xs text-muted-foreground">{t('agent.cloudProvidersDisabled')}</p>
@@ -426,7 +411,7 @@ export function ReAgentModelPanel() {
             </div>
           )}
         </div>
-      </section>
+      </PanelSection>
 
       <div className="flex items-center justify-between border-t border-border/60 pt-4">
         <span className="text-sm">{t('agent.refreshModels')}</span>

@@ -65,8 +65,8 @@ The config is kept **in memory only** — ReAgent never writes it to
 
 ## Notes
 
-- Registered providers appear at the top of **Settings → Model**, and their
-  models are offered in the composer's picker.
+- Registered providers get their own collapsible section in **Settings →
+  Model**, and their models are offered in the composer's picker.
 - `authHeaders` shapes how the key reaches the API (a custom header, a
   different scheme, …) and overrides the default bearer header.
 - A provider can supply its own `fetch` to mock the endpoint in-page. Both the

@@ -29,6 +29,9 @@ import { ReAgent, type ReAgentProps } from '@liyu1981/reagent';
 | `extraTools` | `AgentTool<any>[]` | `[]` | Raw agent tools merged into the run (e.g. MCP). |
 | `extraDescriptors` | `AgentToolDescriptor[]` | `[]` | Tool descriptors shown in the Tools panel and built into the run. |
 | `storagePrefix` | `string` | `'agent'` | Namespace for all persisted state (localStorage + IndexedDB). See [Multiple agents & storage](./multiple-agents). |
+| `hostProviders` | `ReAgentHostProvider[]` | `[]` | Host-injected providers with their own setup UI. See [Host providers](./host-providers). |
+| `providerFilter` | `{ enabled?: string[]; disabled?: string[] }` | — | Which providers are registered. Omit for every available provider. See [Models & providers](./models#choosing-providers). |
+| `beforeAgentCall` | `ReAgentCallGate` | — | Pre-send gate that can stop a call. See [Host integrations](./host-integrations). |
 
 ### `ReAgentMarkdown`
 

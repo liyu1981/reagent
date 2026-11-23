@@ -19,6 +19,18 @@ export interface AgentProviderSettings {
   verified?: boolean;
 }
 
+/**
+ * Which providers `<ReAgentProvider providerFilter>` registers. This is a
+ * component prop, not a persisted setting: omit it entirely and every available
+ * provider is registered.
+ */
+export interface ReAgentProviderFilter {
+  /** Allow-list: only these provider ids are registered. */
+  enabled?: readonly string[];
+  /** Deny-list, applied after `enabled`. */
+  disabled?: readonly string[];
+}
+
 export interface ReAgentCloudModelSpec {
   id: string;
   name?: string;

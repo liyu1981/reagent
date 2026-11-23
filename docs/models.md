@@ -27,37 +27,49 @@ registers:
 | `openrouter` | Browser-verified. API key. |
 | `ollama` | Custom local/OpenAI-compatible endpoint; defaults to `http://localhost:11434`, usually no key. |
 
-## Switching providers off
+## Choosing providers
 
-**Settings → Model** starts with a provider list — host-injected providers, the
-browser-supported built-ins, your custom providers and the local
-OpenAI-compatible endpoint — each with a switch. Switching one off **unregisters
-it**: it disappears from the model picker and from `getModels()`, so a provider
-you never use stops cluttering the UI. Its spec and stored API key are kept, so
-switching it back on needs no re-entry. A switched-off provider also stays off
-when its custom-provider spec is registered again; the switch wins.
+Which providers are registered is **component configuration, not a setting** —
+there are no provider switches in the UI. Pass `providerFilter` to
+`<ReAgent>` / `<ReAgentProvider>`:
 
-A conversation still bound to a model of a switched-off provider reports an
+```tsx
+// Only these two providers are registered.
+<ReAgent providerFilter={{ enabled: ['openrouter', 'ollama'] }} />;
+
+// Everything except these is registered.
+<ReAgent providerFilter={{ disabled: ['ollama'] }} />;
+```
+
+Omit the prop and **every available provider** is registered. A filtered-out
+provider is never registered: it disappears from the model picker and from
+`getModels()`. Its spec and stored API key are kept, so removing it from the
+filter needs no re-entry.
+
+A conversation still bound to a model of a filtered-out provider reports an
 unknown model until you pick another one in the composer.
 
-The same switch is available in code:
+The same predicate is available in code, plus a programmatic switch for tools
+such as the docs site's provider test bench:
 
 ```ts
 import {
+  getProviderFilter,
   isProviderEnabled,
   listConfigurableProviders,
   setProviderEnabled,
 } from '@liyu1981/reagent';
 
-listConfigurableProviders();       // [{ id, name }] — on and off providers alike
-setProviderEnabled('ollama', false);
+listConfigurableProviders();       // [{ id, name }] — every registerable provider
+isProviderEnabled('ollama');       // respects the active providerFilter
+
+getProviderFilter();               // { enabled?, disabled? } | null
+setProviderEnabled('ollama', false); // persisted in `agent.config`
 setProviderEnabled('ollama', true);
-isProviderEnabled('ollama');       // true
 ```
 
-The ids live in `agent.config` as `providersDisabled`, so a host can preset them
-too: `updateAgentConfig({ providersDisabled: ['ollama'] })` (followed by a
-rebuild, which `setProviderEnabled` does for you).
+`providerFilter` is not persisted (it is a prop); `setProviderEnabled` writes to
+`agent.config` as `providersDisabled` for hosts that need a runtime toggle.
 
 The auth formats and notes below are reference material for the full pi-ai set.
 
@@ -187,9 +199,9 @@ setOllamaBaseUrl('http://localhost:11434');
 ## Verifying & listing
 
 Only **verified** providers contribute models to the picker, and only providers
-left switched on are registered at all (see
-[Switching providers off](#switching-providers-off)). Verification runs a tiny
-request (or, for the local provider, a `GET /v1/models` probe):
+left in the [provider filter](#choosing-providers) are registered at all.
+Verification runs a tiny request (or, for the local provider, a `GET /v1/models`
+probe):
 
 ```ts
 import { isVerified, listAvailableModels, refreshModels, testConnection } from '@liyu1981/reagent';

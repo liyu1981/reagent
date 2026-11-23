@@ -31,6 +31,7 @@ export {
   getModel,
   getModels,
   getOllamaBaseUrl,
+  getProviderFilter,
   hasCredential,
   isProviderEnabled,
   isVerified,
@@ -46,6 +47,7 @@ export {
   setKeyRetention,
   setOllamaBaseUrl,
   setProviderEnabled,
+  setProviderFilter,
   testConnection,
 } from './core/models';
 export * from './core/prompt';

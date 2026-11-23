@@ -51,6 +51,7 @@ import {
   pruneExpiredCredentials,
   rebuildModels,
   refreshModels,
+  setProviderFilter,
   subscribeModels,
 } from './models';
 import { EDITOR_GUARDRAIL, filesSystemPrompt, resolveSystemPrompt } from './prompt';
@@ -74,6 +75,7 @@ import type {
   AgentToolDescriptor,
   ReAgentFileRef,
   ReAgentFilesConfig,
+  ReAgentProviderFilter,
   ToolChip,
 } from './types';
 import { hasWebMcp, listWebMcpTools, subscribeWebMcp } from './webmcp';
@@ -222,6 +224,13 @@ export interface ReAgentProviderProps {
   /** Host-injected LLM providers (own setup UI; config kept in memory only). */
   hostProviders?: ReAgentHostProvider[];
   /**
+   * Which providers the model registry registers. Omit it to register every
+   * available provider; pass `{ enabled: [...] }` for an allow-list or
+   * `{ disabled: [...] }` for a deny-list. Not persisted — it is component
+   * configuration, and there is no in-app switch for it.
+   */
+  providerFilter?: ReAgentProviderFilter;
+  /**
    * Runs before each agent call (each send). Return nothing/`true`/`{ ok: true }`
    * to continue, or `false`/`{ ok: false, message?, ui? }` to stop the call and
    * explain why — the input is kept, nothing is appended to the conversation.
@@ -248,11 +257,16 @@ export function ReAgentProvider({
   files,
   storagePrefix,
   hostProviders,
+  providerFilter,
   beforeAgentCall,
   children,
 }: ReAgentProviderProps) {
   const t = useMemo(() => translate ?? makeTranslator(messages), [translate, messages]);
   const prefix = resolveStoragePrefix(storagePrefix);
+  // The provider filter is a prop, so it is applied (never persisted) before
+  // the registry is first built on this render. `setProviderFilter` is a no-op
+  // when nothing changed, so running it during render is safe.
+  setProviderFilter(providerFilter, prefix);
   const mcp = useMemo(() => getMcpManager(prefix), [prefix]);
   const subscribeConfig = useCallback(
     (listener: () => void) => subscribeAgentConfig(listener, prefix),
@@ -419,6 +433,14 @@ export function ReAgentProvider({
     },
     [prefix],
   );
+
+  // A changed filter (host re-render with new props) needs a rebuilt registry.
+  // The mount render already applied it, so this only rebuilds on real changes.
+  useEffect(() => {
+    if (setProviderFilter(providerFilter, prefix)) {
+      rebuildModels(prefix);
+    }
+  }, [providerFilter, prefix]);
 
   const modelsVersion = useSyncExternalStore(
     useCallback((listener: () => void) => subscribeModels(listener, prefix), [prefix]),

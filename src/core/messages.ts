@@ -23,8 +23,7 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.cancel': 'Cancel',
   'agent.clearKey': 'Clear key',
   'agent.cloudProviders': 'Cloud providers',
-  'agent.cloudProvidersDisabled':
-    'Cloud providers are temporarily unavailable. Browser requests to AI gateways are blocked by CORS, so only the custom local/OpenAI-compatible endpoint can be used until backend support lands.',
+  'agent.cloudProvidersDisabled': 'No cloud providers are registered for this agent.',
   'agent.clearSelection': 'Clear selection',
   'agent.close': 'Close',
   'agent.connected': 'Connected · {{model}}',
@@ -109,9 +108,6 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
     'Used for the local OpenAI-compatible provider. Set to your Ollama server, e.g. http://localhost:11434.',
   'agent.ollamaKeyPlaceholder': 'No key required',
   'agent.ollamaSaved': 'Ollama base URL saved.',
-  'agent.providers': 'Providers',
-  'agent.providersDisabledHint':
-    'Switch a provider off to remove it from the model picker. Its API key is kept, so switching it back on needs no re-entry.',
   'agent.refresh': 'Refresh',
   'agent.refreshModels': 'Refresh available models',
   'agent.removeAttachment': 'Remove attachment',
