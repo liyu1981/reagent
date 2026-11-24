@@ -4,7 +4,7 @@ import { Bot, ChevronDown, Copy, GitBranch, RotateCcw, Sparkles, X } from 'lucid
 import { useState } from 'react';
 import { getMessageFiles } from '../core/attachments';
 import { useReAgent } from '../core/hooks';
-import { useMarkdown, useResolvedTheme, useTranslation } from '../core/i18n';
+import { useMarkdown, useResolvedTheme, useToast, useTranslation } from '../core/i18n';
 import { cn } from '../lib/utils';
 import { ReAgentFileAttachment } from './reagent-file-attachment';
 
@@ -195,14 +195,16 @@ function RegenerateButton({ index, label }: { index: number; label: string }) {
 }
 
 function CopyButton({ text, label }: { text: string; label: string }) {
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
+      toast.success('Copied');
       setTimeout(() => setCopied(false), 1500);
     } catch {
-      // ignore
+      toast.error('Copy failed');
     }
   };
   return (
