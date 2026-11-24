@@ -101,6 +101,7 @@ export interface ReAgentContextValue {
 
   createSession: () => Promise<void>;
   forkSession: (id: string, atIndex?: number) => Promise<void>;
+  regenerate: (index: number) => Promise<void>;
   loadSession: (id: string) => Promise<void>;
   renameSession: (id: string, title: string) => Promise<void>;
   deleteSession: (id: string) => Promise<void>;
@@ -778,6 +779,35 @@ export function ReAgentProvider({
     [buildForSession, currentBasePrompt, defaultModel],
   );
 
+  const regenerate = useCallback(
+    async (index: number) => {
+      const sessionNow = latestRef.current;
+      if (sessionNow === null) return;
+      // Find nearest preceding user prompt.
+      let prompt = '';
+      for (let i = index - 1; i >= 0; i--) {
+        const msg = sessionNow.messages[i];
+        if (msg?.role === 'user') {
+          prompt = typeof msg.content === 'string' ? msg.content : msg.content.filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n');
+          break;
+        }
+      }
+      const truncated = { ...sessionNow, messages: sessionNow.messages.slice(0, index), updatedAt: Date.now() };
+      await saveSession(truncated, prefix);
+      setSessions(prev => prev.map(s => (s.id === truncated.id ? truncated : s)));
+      latestRef.current = truncated;
+      updateConfig({ activeSessionId: truncated.id });
+      agentRef.current?.abort();
+      setStreaming(false);
+      setStreamingText('');
+      setToolChips([]);
+      setError(null);
+      await buildForSession(truncated);
+      if (prompt !== '') setInput(prompt);
+    },
+    [buildForSession],
+  );
+
   const renameSession = useCallback(async (id: string, title: string) => {
     const target = sessionsRef.current.find(session => session.id === id);
     if (target === undefined) {
@@ -1211,6 +1241,7 @@ export function ReAgentProvider({
       await createSession();
     },
     forkSession,
+    regenerate,
     loadSession,
     renameSession,
     deleteSession,

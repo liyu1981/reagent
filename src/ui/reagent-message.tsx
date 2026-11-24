@@ -1,6 +1,6 @@
 import type { AgentMessage } from '@earendil-works/pi-agent-core';
 import type { ToolCall } from '@earendil-works/pi-ai';
-import { Bot, ChevronDown, GitBranch, Sparkles, X } from 'lucide-react';
+import { Bot, ChevronDown, Copy, GitBranch, RotateCcw, Sparkles, X } from 'lucide-react';
 import { useState } from 'react';
 import { getMessageFiles } from '../core/attachments';
 import { useReAgent } from '../core/hooks';
@@ -108,7 +108,10 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
           )}
           {text !== '' && <p className="whitespace-pre-wrap">{text}</p>}
         </div>
-        <BranchButton onClick={branchFromHere} label={t('agent.sessionBranchFromHere')} />
+        <div className="flex flex-col gap-1">
+          <CopyButton text={text} label={t('agent.copyMessage')} />
+          <BranchButton onClick={branchFromHere} label={t('agent.sessionBranchFromHere')} />
+        </div>
       </div>
     );
   }
@@ -163,8 +166,55 @@ export function ReAgentMessage({ message, index, toolResults, className }: ReAge
           </div>
         )}
       </div>
-      <BranchButton onClick={branchFromHere} label={t('agent.sessionBranchFromHere')} />
+      <div className="flex flex-col gap-1">
+        <RegenerateButton index={index} label={t("agent.regenerateMessage")} />
+        <CopyButton text={text} label={t('agent.copyMessage')} />
+        <BranchButton onClick={branchFromHere} label={t('agent.sessionBranchFromHere')} />
+      </div>
     </div>
+  );
+}
+
+
+function RegenerateButton({ index, label }: { index: number; label: string }) {
+  const { regenerate } = useReAgent();
+  const handleRegenerate = async () => {
+    await regenerate(index);
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void handleRegenerate()}
+      aria-label={label}
+      title={label}
+      className="mt-0.5 self-start rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+    >
+      <RotateCcw className="size-3" />
+    </button>
+  );
+}
+
+function CopyButton({ text, label }: { text: string; label: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // ignore
+    }
+  };
+  return (
+    <button
+      type="button"
+      onClick={() => void copy()}
+      aria-label={label}
+      title={copied ? 'Copied' : label}
+      className="mt-0.5 self-start rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-muted group-hover:opacity-100"
+    >
+      <Copy className="size-3" />
+    </button>
   );
 }
 

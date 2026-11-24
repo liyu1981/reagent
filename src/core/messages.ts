@@ -125,6 +125,8 @@ export const DEFAULT_MESSAGES: ReAgentMessages = {
   'agent.sessionActions': 'Conversation actions',
   'agent.sessionBranch': 'Branch',
   'agent.sessionBranchFromHere': 'Branch from here',
+  'agent.copyMessage': 'Copy message',
+  'agent.regenerateMessage': 'Regenerate',
   'agent.sessionCollapse': 'Collapse branch',
   'agent.sessionDelete': 'Delete',
   'agent.sessionDeleteKeepChildren':
