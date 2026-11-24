@@ -673,6 +673,13 @@ export function ReAgentProvider({
         ...webmcpToolsRef.current,
         ...(extraToolsRef.current ?? []),
       ];
+      if (getModel(sessionNow.providerId, sessionNow.modelId, prefix) === undefined) {
+        // Model not available yet (e.g. host provider locked). Defer validation
+        // until the user sends, instead of failing the whole session load.
+        agentRef.current = null;
+        setError(null);
+        return null;
+      }
       try {
         const instance = buildAgent({
           providerId: sessionNow.providerId,
@@ -988,7 +995,10 @@ export function ReAgentProvider({
       }
       sessionNow = created;
     }
-    const instance = agentRef.current;
+    let instance = agentRef.current;
+    if (instance === null && latestRef.current !== null) {
+      instance = await buildForSession(latestRef.current);
+    }
     if (instance === null) {
       return;
     }
