@@ -24,14 +24,20 @@ export function ReAgentPromptPanel() {
     }
   }, [config.systemPrompt.custom, builtIn, update]);
 
-  const handleSave = () => {
-    if (value.trim() === '') {
+  const saveValue = (next: string) => {
+    if (next.trim() === '') {
       update({ systemPrompt: { mode: 'default', custom: '' } });
       toast.success(t('agent.customPromptCleared'));
       return;
     }
-    update({ systemPrompt: { mode: 'custom', custom: value } });
+    update({ systemPrompt: { mode: 'custom', custom: next } });
     toast.success(t('agent.customPromptSaved'));
+  };
+
+  const handleSave = () => saveValue(value);
+
+  const handleBlur = () => {
+    if (value !== config.systemPrompt.custom) saveValue(value);
   };
 
   const handleReset = () => {
@@ -45,6 +51,7 @@ export function ReAgentPromptPanel() {
       <textarea
         value={value}
         onChange={event => setValue(event.target.value)}
+        onBlur={handleBlur}
         placeholder={t('agent.customPromptPlaceholder')}
         rows={8}
         spellCheck={false}
